@@ -10,14 +10,14 @@ public class Config {
 	private String version;
 	private String maintainer;
 	private String depends;
-	private String wrapperConfig;
+	private String installDir;
 	
-	public String getWrapperConfig() {
-		return wrapperConfig;
+	public String getInstallDir() {
+		return installDir;
 	}
 	
-	public void setWrapperConfig(String wrapperConfig) {
-		this.wrapperConfig = wrapperConfig;
+	public void setInstallDir(String installDir) {
+		this.installDir = installDir;
 	}
 	
 	public String getName() {

@@ -21,22 +21,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
+import java.util.Set;
 import java.util.TimeZone;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -44,12 +42,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
-import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.model.Developer;
-import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
@@ -68,7 +61,6 @@ import freemarker.template.TemplateExceptionHandler;
  */
 public class DebianPackageMojo extends AbstractMojo {
 
-	private static final Pattern installDirPattern = Pattern.compile("\\$\\{install\\.dir\\}");
 	/**
 	 * The maven project.
 	 * 
@@ -85,7 +77,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * @parameter
 	 */
-	private Properties additionalPaths;
+	private List<Fileset> fileSets;
 
 	/**
 	 * @parameter
@@ -100,39 +92,20 @@ public class DebianPackageMojo extends AbstractMojo {
 	private String unixGroupId;
 
 	/**
-	 * @parameter
+	 * @parameter default-value=true;
 	 */
-	private String wrapperConfig;
-
-	/**
-	 * @parameter
-	 */
-	private String groupIDToExtract;
+	private Boolean javaServiceWrapper;
 
 	/**
 	 * @parameter default-value=true;
 	 */
 	private Boolean attachArtifact;
-	
-	/**
-	 * @parameter
-	 */
-	private String groupIDToInclude;
 
-	/**
-	 * Location of the local repository.
-	 * 
-	 * @parameter expression="${localRepository}"
-	 * @readonly
-	 * @required
-	 */
-	private ArtifactRepository local;
-
-	private String maintainer;
 	private final static String BASE_DIR = "./src/main/deb";
 	private final static Pattern email = Pattern.compile("^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$");
-	private String installDir;
-	private List<String> dirsAdded = new ArrayList<String>();
+	private Configuration freemarkerConfig = new Configuration();
+	private Set<String> dirsAdded = new HashSet<String>();
+	private Set<String> ignore = new HashSet<String>();
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -140,7 +113,6 @@ public class DebianPackageMojo extends AbstractMojo {
 		validate();
 		fillDefaults();
 
-		Configuration freemarkerConfig = new Configuration();
 		freemarkerConfig.setDefaultEncoding("UTF-8");
 		freemarkerConfig.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
 		freemarkerConfig.setClassForTemplateLoading(DebianPackageMojo.class, "/");
@@ -154,11 +126,13 @@ public class DebianPackageMojo extends AbstractMojo {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		config.setVersion(sdf.format(new Date()));
+		Developer dev = project.getDevelopers().get(0);
+		String maintainer = dev.getName() + " <" + dev.getEmail() + ">";
 		config.setMaintainer(maintainer);
 		config.setName(project.getName());
 		config.setDescription(project.getDescription());
 		config.setDepends(formatDependencies(osDependencies));
-		config.setWrapperConfig(wrapperConfig);
+		config.setInstallDir("/home/" + unixUserId + "/" + project.getArtifactId());
 
 		ArFileOutputStream aros = null;
 		try {
@@ -169,10 +143,10 @@ public class DebianPackageMojo extends AbstractMojo {
 			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
 			aros.closeEntry();
 			aros.putNextEntry(createEntry("control.tar.gz"));
-			fillControlTar(config, freemarkerConfig, aros);
+			fillControlTar(config, aros);
 			aros.closeEntry();
 			aros.putNextEntry(createEntry("data.tar.gz"));
-			fillDataTar(config, freemarkerConfig, aros);
+			fillDataTar(config, aros);
 			aros.closeEntry();
 			if (attachArtifact) {
 				VersionableAttachedArtifact artifact = new VersionableAttachedArtifact(project.getArtifact(), "deb", config.getVersion());
@@ -195,12 +169,14 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private void fillDefaults() {
 		unixUserId = unixUserId.trim();
-		Developer dev = project.getDevelopers().get(0);
-		maintainer = dev.getName() + " <" + dev.getEmail() + ">";
-		installDir = "/home/" + unixUserId + "/" + project.getArtifactId();
-		if (wrapperConfig != null && wrapperConfig.trim().length() != 0 && !osDependencies.containsKey("service-wrapper")) {
+		if (Boolean.TRUE.equals(javaServiceWrapper) && !osDependencies.containsKey("service-wrapper")) {
 			osDependencies.put("service-wrapper", null);
 		}
+		ignore.add(".svn");
+		ignore.add("preinst");
+		ignore.add("postinst");
+		ignore.add("prerm");
+		ignore.add("postrm");
 	}
 
 	private void validate() throws MojoExecutionException {
@@ -208,36 +184,12 @@ public class DebianPackageMojo extends AbstractMojo {
 			throw new MojoExecutionException("unixUserId should be specified");
 		}
 		if (unixUserId.trim().length() > 8) {
-			throw new MojoExecutionException("unixUserId lenght should be 8. I don't know the maximum");
+			throw new MojoExecutionException("unixUserId lenght should be less than 8");
 		}
 		File debDir = new File(BASE_DIR);
 		if (!debDir.exists()) {
 			throw new MojoExecutionException(".deb base directory doesnt exist: " + BASE_DIR);
 		}
-		boolean hasWrapperConfig = wrapperConfig != null && wrapperConfig.trim().length() != 0;
-		if (hasWrapperConfig) {
-			List<File> dirsToCheck = new ArrayList<File>();
-			dirsToCheck.add(new File(debDir, "etc"));
-			for (Resource cur : project.getResources()) {
-				dirsToCheck.add(new File(cur.getDirectory()));
-			}
-			boolean found = false;
-			for (File curDir : dirsToCheck) {
-				File curWrapper = new File(curDir, wrapperConfig);
-				if (curWrapper.exists()) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				StringBuilder paths = new StringBuilder();
-				for (File cur : dirsToCheck) {
-					paths.append(cur.getAbsolutePath()).append(" ");
-				}
-				throw new MojoExecutionException("cannot find wrapper config: " + wrapperConfig + " in paths: " + paths.toString());
-			}
-		}
-
 		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
 			throw new MojoExecutionException("project description is mandatory");
 		}
@@ -260,12 +212,12 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private void fillDataTar(Config config, Configuration freemarkerConfig, ArFileOutputStream output) throws MojoExecutionException {
+	private void fillDataTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
 		TarArchiveOutputStream tar = null;
 		try {
 			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
 			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-			if (wrapperConfig != null && wrapperConfig.trim().length() != 0) {
+			if (Boolean.TRUE.equals(javaServiceWrapper)) {
 				byte[] daemonData = processTemplate(freemarkerConfig, config, "daemon.ftl");
 				TarArchiveEntry initScript = new TarArchiveEntry("etc/init.d/" + project.getArtifactId());
 				initScript.setSize(daemonData.length);
@@ -274,134 +226,65 @@ public class DebianPackageMojo extends AbstractMojo {
 				tar.write(daemonData);
 				tar.closeArchiveEntry();
 			}
-			File[] dirs = new File(BASE_DIR).listFiles();
 			String packageBaseDir = "home/" + unixUserId + "/" + project.getArtifactId() + "/";
-			String resourcesBaseDir = "home/" + unixUserId + "/" + project.getArtifactId() + "/etc/";
-			String binBaseDir = "home/" + unixUserId + "/" + project.getArtifactId() + "/bin/";
-			for (File curFile : dirs) {
-				if (!curFile.isDirectory()) {
-					continue;
+			if (fileSets != null && !fileSets.isEmpty()) {
+				writeDirectory(tar, packageBaseDir);
+
+				Collections.sort(fileSets, MappingPathComparator.INSTANCE);
+				for (Fileset curPath : fileSets) {
+					curPath.setTarget(packageBaseDir + curPath.getTarget());
+					addRecursively(config, tar, curPath);
 				}
-				addRecursively(tar, curFile, packageBaseDir + curFile.getName(), resourcesBaseDir, binBaseDir, false);
-			}
-			if (additionalPaths != null && !additionalPaths.isEmpty()) {
-				List<MappingPath> paths = new ArrayList<MappingPath>();
-				for (Entry<Object, Object> curEntry : additionalPaths.entrySet()) {
-					File curDir = new File((String) curEntry.getKey());
-					if (!curDir.isDirectory()) {
-						continue;
-					}
-					paths.add(new MappingPath((String) curEntry.getKey(), (String) curEntry.getValue()));
-				}
-				Collections.sort(paths, new MappingPathComparator());
-				for (MappingPath curPath : paths) {
-					addRecursively(tar, new File(curPath.getSourcePath()), packageBaseDir + curPath.getTargetPath(), resourcesBaseDir, binBaseDir, false);
-				}
-			}
-			ArtifactFilter filter = new ScopeArtifactFilter(Artifact.SCOPE_COMPILE);
-			project.setArtifactFilter(filter);
-			List<Artifact> libs = new ArrayList<Artifact>();
-			if (project.getArtifact() != null && project.getArtifact().getFile() != null && project.getArtifact().getType().equals("jar")) {
-				libs.add(project.getArtifact());
-			}
-			for (Object cur : project.getArtifacts()) {
-				Artifact curArtifact = (Artifact) cur;
-				if (curArtifact.getScope().equals(Artifact.SCOPE_SYSTEM)) {
-					continue;
-				}
-				libs.add(curArtifact);
 			}
 
-			if (!libs.isEmpty()) {
-				writeDirectory(tar, packageBaseDir + "lib/");
-			}
-
-			for (Artifact cur : libs) {
-				boolean extract;
-				if (groupIDToExtract != null && groupIDToExtract.equals(cur.getGroupId())) {
-					extract = true;
-				} else {
-					extract = false;
-				}
-				
-				File fileToOutput;
-				if (cur.getFile() != null) {
-					fileToOutput = cur.getFile();
-				} else {
-					String path = local.pathOf(cur);
-					URL curPath = new URL(local.getUrl() + path);
-					fileToOutput = new File(curPath.toURI());
-				}
-				addRecursively(tar, fileToOutput, packageBaseDir + "lib/" + fileToOutput.getName(), resourcesBaseDir, binBaseDir, extract);
-			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
 		} finally {
-			if (tar != null) {
-				try {
-					tar.close();
-				} catch (IOException e) {
-					getLog().error("unable to finish tar", e);
-				}
-			}
+			IOUtils.closeQuietly(tar);
 		}
 	}
 
-	private void addRecursively(TarArchiveOutputStream tar, File curFile, String filename, String resourcesBaseDir, String binBaseDir, boolean extractToEtc) throws MojoExecutionException {
-		if (curFile.isDirectory()) {
-			if (curFile.getName().equals(".svn")) {
-				return;
-			}
-			filename += "/";
-		} else {
-			if (curFile.getName().endsWith(".rrd") || curFile.getName().endsWith(".log")) {
-				return;
-			}
-			if (extractToEtc) {
-				extractSourceFilesToEtc(tar, curFile, resourcesBaseDir, binBaseDir);
-			}
+	private void addRecursively(Config config, TarArchiveOutputStream tar, Fileset fileset) throws MojoExecutionException {
+		File sourceFile = new File(fileset.getSource());
+		String targetFilename = fileset.getTarget();
+		// skip well-known ignore directories
+		if (ignore.contains(sourceFile.getName()) || sourceFile.getName().endsWith(".rrd") || sourceFile.getName().endsWith(".log")) {
+			return;
 		}
-		if (!dirsAdded.contains(filename)) {
-			FileInputStream fis = null;
-			try {
-				TarArchiveEntry curEntry = new TarArchiveEntry(filename);
-				if (!curFile.isDirectory()) {
-					if (curFile.getName().endsWith(".sh")) {
-						String data = read(curFile);
-						Matcher m = installDirPattern.matcher(data);
-						if (m.find()) {
-							data = m.replaceAll(installDir);
-						}
-						byte[] bytes = data.getBytes();
-						curEntry.setSize(bytes.length);
-						tar.putArchiveEntry(curEntry);
-						tar.write(bytes);
-					} else {
-						curEntry.setSize(curFile.length());
-						tar.putArchiveEntry(curEntry);
-						IOUtils.copy(new FileInputStream(curFile), tar);
-					}
-				} else {
-					dirsAdded.add(filename);
+		FileInputStream fis = null;
+		try {
+			if (!sourceFile.isDirectory()) {
+				TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
+				if (fileset.isFilter()) {
+					byte[] bytes = processTemplate(freemarkerConfig, config, fileset.getSource());
+					curEntry.setSize(bytes.length);
 					tar.putArchiveEntry(curEntry);
+					tar.write(bytes);
+				} else {
+					curEntry.setSize(sourceFile.length());
+					tar.putArchiveEntry(curEntry);
+					fis = new FileInputStream(sourceFile);
+					IOUtils.copy(fis, tar);
 				}
 				tar.closeArchiveEntry();
-			} catch (Exception e) {
-				throw new MojoExecutionException("unable to add data file: " + curFile.getAbsolutePath(), e);
-			} finally {
-				if (fis != null) {
-					try {
-						fis.close();
-					} catch (IOException e) {
-						throw new MojoExecutionException("unable to close data file: " + curFile.getAbsolutePath(), e);
-					}
+			} else if (sourceFile.isDirectory()) {
+				targetFilename += "/";
+				if (!dirsAdded.contains(targetFilename)) {
+					dirsAdded.add(targetFilename);
+					writeDirectory(tar, targetFilename);
 				}
 			}
+		} catch (Exception e) {
+			throw new MojoExecutionException("unable to write", e);
+		} finally {
+			IOUtils.closeQuietly(fis);
 		}
-		if (curFile.isDirectory()) {
-			File[] subFiles = curFile.listFiles();
+
+		if (sourceFile.isDirectory()) {
+			File[] subFiles = sourceFile.listFiles();
 			for (File curSubFile : subFiles) {
-				addRecursively(tar, curSubFile, filename + curSubFile.getName(), resourcesBaseDir, binBaseDir, extractToEtc);
+				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName(), fileset.isFilter());
+				addRecursively(config, tar, curSubFileset);
 			}
 		}
 	}
@@ -419,80 +302,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private static String read(File f) throws Exception {
-		BufferedReader r = null;
-		StringBuilder b = new StringBuilder();
-		try {
-			r = new BufferedReader(new FileReader(f));
-			String curLine = null;
-			while ((curLine = r.readLine()) != null) {
-				b.append(curLine).append("\n");
-			}
-		} finally {
-			if (r != null) {
-				try {
-					r.close();
-				} catch (IOException e) {
-					throw new MojoExecutionException("unable to close data file: " + f.getAbsolutePath(), e);
-				}
-			}
-		}
-		return b.toString();
-	}
-
-	private void extractSourceFilesToEtc(TarArchiveOutputStream tar, File jarFile, String resourcesBaseDir, String binBaseDir) throws MojoExecutionException {
-		JarInputStream jis = null;
-		try {
-			jis = new JarInputStream(new FileInputStream(jarFile));
-			JarEntry curEntry = null;
-			while ((curEntry = jis.getNextJarEntry()) != null) {
-				TarArchiveEntry curTarEntry = null;
-				if (!curEntry.getName().endsWith(".class") && !curEntry.getName().endsWith("/") && !curEntry.getName().startsWith("META-INF")) {
-					List<String> dirs = getDirs(curEntry.getName());
-					for (String curDir : dirs) {
-						if (dirsAdded.contains(curDir)) {
-							continue;
-						}
-						writeDirectory(tar, resourcesBaseDir + curDir);
-						dirsAdded.add(curDir);
-					}
-					curTarEntry = new TarArchiveEntry(resourcesBaseDir + curEntry.getName());
-					curTarEntry.setSize(curEntry.getSize());
-				}
-				if (curTarEntry == null) {
-					continue;
-				}
-				tar.putArchiveEntry(curTarEntry);
-				//copy batch
-				int curByte = -1;
-				while ((curByte = jis.read()) != -1) {
-					tar.write(curByte);
-				}
-				tar.closeArchiveEntry();
-			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to extract resources to \"./etc\" folder from .jar: " + jarFile.getAbsolutePath(), e);
-		} finally {
-			if (jis != null) {
-				try {
-					jis.close();
-				} catch (IOException e) {
-					getLog().error("unable to close .jar while extracting resources", e);
-				}
-			}
-		}
-	}
-
-	private static List<String> getDirs(String entryName) {
-		List<String> result = new ArrayList<String>();
-		int curIndex = -1;
-		while ((curIndex = entryName.indexOf('/', curIndex + 1)) != -1) {
-			result.add(entryName.substring(0, curIndex));
-		}
-		return result;
-	}
-
-	private void fillControlTar(Config config, Configuration freemarkerConfig, ArFileOutputStream output) throws MojoExecutionException {
+	private void fillControlTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
 		TarArchiveOutputStream tar = null;
 		try {
 			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
@@ -500,72 +310,44 @@ public class DebianPackageMojo extends AbstractMojo {
 			TarArchiveEntry rootDir = new TarArchiveEntry("./");
 			tar.putArchiveEntry(rootDir);
 			tar.closeArchiveEntry();
-			
+
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
 			TarArchiveEntry controlEntry = new TarArchiveEntry("./control");
 			controlEntry.setSize(controlData.length);
 			tar.putArchiveEntry(controlEntry);
 			tar.write(controlData);
 			tar.closeArchiveEntry();
-			
-			byte[] preinstBaseData = processTemplate(freemarkerConfig, config, "preinst.ftl");
-			byte[] additionalPreinst = readControlFile(BASE_DIR + File.separator + "preinst", installDir);
+
+			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", BASE_DIR + File.separator + "preinst"));
 			long size = preinstBaseData.length;
-			if( additionalPreinst != null ) {
-				size += additionalPreinst.length;
-			}
 			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
 			preinstEntry.setSize(size);
 			tar.putArchiveEntry(preinstEntry);
 			tar.write(preinstBaseData);
-			if (additionalPreinst != null) {
-				tar.write(additionalPreinst);
-			}
 			tar.closeArchiveEntry();
-			
-			byte[] postinstBaseData = processTemplate(freemarkerConfig, config, "postinst.ftl");
-			byte[] additionalPostinst = readControlFile(BASE_DIR + File.separator + "postinst", installDir);
+
+			byte[] postinstBaseData = processTemplate(freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst"));
 			size = postinstBaseData.length;
-			if( additionalPostinst != null ) {
-				size += additionalPostinst.length;
-			}
 			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
 			postinstEntry.setSize(size);
 			tar.putArchiveEntry(postinstEntry);
 			tar.write(postinstBaseData);
-			if (additionalPostinst != null) {
-				tar.write(additionalPostinst);
-			}
 			tar.closeArchiveEntry();
-			
-			byte[] prermBaseData = processTemplate(freemarkerConfig, config, "prerm.ftl");
-			byte[] additionalPrerm = readControlFile(BASE_DIR + File.separator + "prerm", installDir);
+
+			byte[] prermBaseData = processTemplate(freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm"));
 			size = prermBaseData.length;
-			if( additionalPrerm != null ) {
-				size += additionalPrerm.length;
-			}
 			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
 			prermEntry.setSize(size);
 			tar.putArchiveEntry(prermEntry);
 			tar.write(prermBaseData);
-			if (additionalPrerm != null) {
-				tar.write(additionalPrerm);
-			}
 			tar.closeArchiveEntry();
-			
-			byte[] postrmBaseData = processTemplate(freemarkerConfig, config, "postrm.ftl");
-			byte[] additionalPostrm = readControlFile(BASE_DIR + File.separator + "postrm", installDir);
+
+			byte[] postrmBaseData = processTemplate(freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm"));
 			size = postrmBaseData.length;
-			if( additionalPostrm != null ) {
-				size += additionalPostrm.length;
-			}
 			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
 			postrmEntry.setSize(size);
 			tar.putArchiveEntry(postrmEntry);
 			tar.write(postrmBaseData);
-			if (additionalPostrm != null) {
-				tar.write(additionalPostrm);
-			}
 			tar.closeArchiveEntry();
 
 		} catch (Exception e) {
@@ -578,6 +360,32 @@ public class DebianPackageMojo extends AbstractMojo {
 					getLog().error("unable to finish tar", e);
 				}
 			}
+		}
+	}
+
+	private static String combine(String classpathResource, String file) throws MojoExecutionException {
+		StringBuilder builder = new StringBuilder();
+		BufferedReader r = null;
+		BufferedReader isr = null;
+		try {
+			isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), "UTF-8"));
+			String curLine = null;
+			while ((curLine = isr.readLine()) != null) {
+				builder.append(curLine).append('\n');
+			}
+			File f = new File(file);
+			if (f.exists()) {
+				r = new BufferedReader(new FileReader(file));
+				while ((curLine = r.readLine()) != null) {
+					builder.append(curLine).append('\n');
+				}
+			}
+			return builder.toString();
+		} catch (Exception e) {
+			throw new MojoExecutionException("unable to combine data", e);
+		} finally {
+			IOUtils.closeQuietly(r);
+			IOUtils.closeQuietly(isr);
 		}
 	}
 
@@ -605,43 +413,20 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private static byte[] processTemplate(Configuration freemarkerConfig, Config config, String name) throws IOException, TemplateException {
 		Template fTemplate = freemarkerConfig.getTemplate(name);
+		return processTemplate(config, fTemplate);
+	}
+
+	private static byte[] processTemplate(String name, Configuration freemarkerConfig, Config config, String filedata) throws TemplateException, IOException {
+		Template fTemplate = new Template(name, new StringReader(filedata), freemarkerConfig);
+		return processTemplate(config, fTemplate);
+	}
+
+	private static byte[] processTemplate(Config config, Template fTemplate) throws TemplateException, IOException {
 		StringWriter w = new StringWriter();
 		Map<String, Object> data = new HashMap<>();
 		data.put("config", config);
 		fTemplate.process(data, w);
-		byte[] postinstBaseData = w.toString().getBytes(StandardCharsets.UTF_8);
-		return postinstBaseData;
-	}
-
-	private static byte[] readControlFile(String filename, String installDir) throws MojoExecutionException {
-		File fileToRead = new File(filename);
-		if (!fileToRead.exists()) {
-			return null;
-		}
-		StringBuilder result = new StringBuilder();
-		String curLine = null;
-		BufferedReader reader = null;
-		try {
-			reader = new BufferedReader(new FileReader(fileToRead));
-			while ((curLine = reader.readLine()) != null) {
-				Matcher m = installDirPattern.matcher(curLine);
-				if (m.find()) {
-					curLine = m.replaceAll(installDir);
-				}
-				result.append(curLine).append("\n");
-			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to read control file: " + filename, e);
-		} finally {
-			if (reader != null) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					throw new MojoExecutionException("unable to close control file: " + filename, e);
-				}
-			}
-		}
-		return result.toString().getBytes();
+		return w.toString().getBytes(StandardCharsets.UTF_8);
 	}
 
 	private static ArEntry createEntry(String name) {
