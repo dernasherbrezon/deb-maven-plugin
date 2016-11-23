@@ -1,10 +1,14 @@
 package com.st.maven.debian;
 
-class Fileset {
+public class Fileset {
 
-	private String source;
-	private String target;
-	private boolean filter;
+	public String source;
+	public String target;
+	public boolean filter;
+	
+	public Fileset() {
+		//do nothing
+	}
 
 	public Fileset(String source, String target, boolean filter) {
 		super();

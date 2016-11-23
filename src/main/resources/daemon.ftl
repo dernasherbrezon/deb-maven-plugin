@@ -26,7 +26,7 @@ USER_HOME=`echo ~${config.user}`
 
 # Wrapper
 WRAPPER_CMD="/usr/sbin/wrapper"
-WRAPPER_CONF="$USER_HOME/${config.artifactId}/etc/${config.wrapperConfig}"
+WRAPPER_CONF="$USER_HOME/${config.artifactId}/etc/wrapper.app.conf"
 
 # Priority at which to run the wrapper.  See "man nice" for valid priorities.
 #  nice is only used if a priority is specified.

@@ -326,7 +326,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postinstBaseData = processTemplate(freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst"));
+			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst"));
 			size = postinstBaseData.length;
 			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
 			postinstEntry.setSize(size);
@@ -334,7 +334,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] prermBaseData = processTemplate(freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm"));
+			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm"));
 			size = prermBaseData.length;
 			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
 			prermEntry.setSize(size);
@@ -342,7 +342,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postrmBaseData = processTemplate(freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm"));
+			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm"));
 			size = postrmBaseData.length;
 			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
 			postrmEntry.setSize(size);
