@@ -64,7 +64,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * The maven project.
 	 * 
-	 * @parameter expression="${project}"
+	 * @parameter expression="project"
 	 * @readonly
 	 */
 	private MavenProject project;
