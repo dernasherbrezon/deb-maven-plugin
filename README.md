@@ -1,10 +1,8 @@
 # deb-maven-plugin
-maven plugin for .deb packaging
 
 maven plugin for .deb packaging
 
-Configuration
--------------
+# configuration
 
 <table>
   <thead>
@@ -45,5 +43,48 @@ Configuration
     <td>Support tanuki service wrapper. This will create daemon configuration in `/etc/init.d/` directory and configure to use tanuki service wrapper</td>
     </tr>
 
+	  <tr>
+    <td>fileSets/fileSet*</td>
+    <td></td>
+    <td>File set to include into final .deb. Could be file or directory</td>
+    </tr>
+    
+    <tr>
+    <td>attachArtifact</td>
+    <td></td>
+    <td>true/false. Attach artifact to project</td>
+    </tr>
+  </tbody>
+</table>
+
+# fileSet
+
+<table>
+  <thead>
+    <tr>
+      <th>
+        Parameter
+      </th>
+      <th>
+        Description
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+	  <tr>
+    <td>source</td>
+    <td>source file or directory. Wildcards ARE NOT supported.</td>
+    </tr>
+    
+<tr>
+    <td>target</td>
+    <td>target file or directory in result .deb file. Please note that in .deb file absolute paths start without "/"</td>
+    </tr>    
+    
+<tr>
+    <td>filter</td>
+    <td>true/false. Apply filter rules. Please note that source should contain text files.</td>
+    </tr>    
+    
   </tbody>
 </table>
