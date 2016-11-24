@@ -1,6 +1,21 @@
 # deb-maven-plugin
 
-maven plugin for .deb packaging
+maven plugin for .deb packaging. Control file generated from pom.xml. Required fields:
+
+* description
+* name
+* developers. At least 1 developer with valid email and name. This email will be used for ```maintainer``` section.
+
+version for .deb artifact will be constructed based on current time. Pattern ```yyyyMMddHHmmss```.
+
+# Custom installation scripts
+
+.deb file supports installation scripts. See <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html" target="blank">manual</a>. Plugin supports these scripts as well. They should be placed into ```./src/main/deb/```. Supported scripts:
+
+* preinst
+* postinst
+* prerm
+* postrm
 
 # configuration
 
