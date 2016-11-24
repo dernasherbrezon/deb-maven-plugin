@@ -88,3 +88,40 @@ maven plugin for .deb packaging
     
   </tbody>
 </table>
+
+# Sample configuration
+
+```xml
+<plugin>
+	<groupId>com.aerse.maven</groupId>
+	<artifactId>deb-maven-plugin</artifactId>
+	<version>1.0</version>
+	<executions>
+		<execution>
+			<id>package</id>
+			<phase>package</phase>
+			<goals>
+				<goal>package</goal>
+			</goals>
+		</execution>
+	</executions>
+	<configuration>
+		<unixUserId>ubuntu</unixUserId>
+		<unixGroupId>ubuntu</unixGroupId>
+		<osDependencies>
+			<openjdk-7-jdk></openjdk-7-jdk>
+			<nginx></nginx>
+			<logrotate>>=3.7.8</logrotate>
+			<imagemagick></imagemagick>
+			<maven></maven>
+		</osDependencies>
+		<javaServiceWrapper>true</javaServiceWrapper>
+		<fileSets>
+			<fileSet>
+				<source>${basedir}/src/main/deb</source>
+				<target>/</target>
+			</fileSet>
+		</fileSets>
+	</configuration>
+</plugin>
+```
