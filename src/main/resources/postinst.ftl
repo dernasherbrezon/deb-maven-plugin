@@ -1,5 +1,3 @@
-#!/bin/bash -e
-
 USER_HOME=`echo ~${config.user}`
 
 case "$1" in

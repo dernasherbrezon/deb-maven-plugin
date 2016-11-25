@@ -318,7 +318,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(controlData);
 			tar.closeArchiveEntry();
 
-			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", BASE_DIR + File.separator + "preinst"));
+			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", BASE_DIR + File.separator + "preinst", false));
 			long size = preinstBaseData.length;
 			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
 			preinstEntry.setSize(size);
@@ -326,7 +326,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst"));
+			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst", true));
 			size = postinstBaseData.length;
 			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
 			postinstEntry.setSize(size);
@@ -334,7 +334,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm"));
+			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm", false));
 			size = prermBaseData.length;
 			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
 			prermEntry.setSize(size);
@@ -342,7 +342,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm"));
+			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm", false));
 			size = postrmBaseData.length;
 			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
 			postrmEntry.setSize(size);
@@ -363,9 +363,38 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private static String combine(String classpathResource, String file) throws MojoExecutionException {
+	private static String combine(String classpathResource, String file, boolean inverse) throws MojoExecutionException {
 		StringBuilder builder = new StringBuilder();
+		builder.append("#!/bin/bash -e\n");
+		if (inverse) {
+			appendUserScript(file, builder);
+			appendSystemScript(classpathResource, builder);
+		} else {
+			appendSystemScript(classpathResource, builder);
+			appendUserScript(file, builder);
+		}
+		return builder.toString();
+	}
+
+	private static void appendUserScript(String file, StringBuilder builder) throws MojoExecutionException {
 		BufferedReader r = null;
+		try {
+			File f = new File(file);
+			String curLine = null;
+			if (f.exists()) {
+				r = new BufferedReader(new FileReader(file));
+				while ((curLine = r.readLine()) != null) {
+					builder.append(curLine).append('\n');
+				}
+			}
+		} catch (Exception e) {
+			throw new MojoExecutionException("unable to combine data", e);
+		} finally {
+			IOUtils.closeQuietly(r);
+		}
+	}
+
+	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws MojoExecutionException {
 		BufferedReader isr = null;
 		try {
 			isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), "UTF-8"));
@@ -373,18 +402,9 @@ public class DebianPackageMojo extends AbstractMojo {
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
-			File f = new File(file);
-			if (f.exists()) {
-				r = new BufferedReader(new FileReader(file));
-				while ((curLine = r.readLine()) != null) {
-					builder.append(curLine).append('\n');
-				}
-			}
-			return builder.toString();
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to combine data", e);
 		} finally {
-			IOUtils.closeQuietly(r);
 			IOUtils.closeQuietly(isr);
 		}
 	}

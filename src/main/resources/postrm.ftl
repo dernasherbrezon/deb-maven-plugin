@@ -1,4 +1,3 @@
-#!/bin/sh -e
 if [ "$1" = "purge" ] ; then
         update-rc.d ${config.artifactId} remove >/dev/null || true
 fi

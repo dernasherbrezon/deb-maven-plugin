@@ -1,4 +1,3 @@
-#!/bin/sh -e
 if ! id ${config.user} > /dev/null 2>&1 ; then
 		useradd -m ${config.user} --shell /bin/bash
 fi
