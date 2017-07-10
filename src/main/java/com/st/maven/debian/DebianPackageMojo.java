@@ -81,6 +81,21 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	/**
 	 * @parameter
+	 */
+	private String section;
+
+	/**
+	 * @parameter
+	 */
+	private String arch;
+
+	/**
+	 * @parameter
+	 */
+	private String priority;
+
+	/**
+	 * @parameter
 	 * @required
 	 */
 	private String unixUserId;
@@ -133,6 +148,21 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setDescription(project.getDescription());
 		config.setDepends(formatDependencies(osDependencies));
 		config.setInstallDir("/home/" + unixUserId + "/" + project.getArtifactId());
+		if (section == null || section.trim().length() == 0) {
+			config.setSection("java");
+		} else {
+			config.setSection(section);
+		}
+		if (arch == null || arch.trim().length() == 0) {
+			config.setArch("all");
+		} else {
+			config.setArch(arch);
+		}
+		if (priority == null || priority.trim().length() == 0) {
+			config.setPriority("standard");
+		} else {
+			config.setPriority(priority);
+		}
 
 		ArFileOutputStream aros = null;
 		try {

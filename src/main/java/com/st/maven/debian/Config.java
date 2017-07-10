@@ -11,6 +11,33 @@ public class Config {
 	private String maintainer;
 	private String depends;
 	private String installDir;
+	private String section;
+	private String arch;
+	private String priority;
+	
+	public String getPriority() {
+		return priority;
+	}
+	
+	public void setPriority(String priority) {
+		this.priority = priority;
+	}
+	
+	public String getArch() {
+		return arch;
+	}
+	
+	public void setArch(String arch) {
+		this.arch = arch;
+	}
+	
+	public String getSection() {
+		return section;
+	}
+	
+	public void setSection(String section) {
+		this.section = section;
+	}
 	
 	public String getInstallDir() {
 		return installDir;
