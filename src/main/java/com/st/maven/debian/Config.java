@@ -13,13 +13,13 @@ public class Config {
 	private String installDir;
 	private String section;
 	private String arch;
-	private String priority;
+	private Priority priority;
 	
-	public String getPriority() {
+	public Priority getPriority() {
 		return priority;
 	}
 	
-	public void setPriority(String priority) {
+	public void setPriority(Priority priority) {
 		this.priority = priority;
 	}
 	

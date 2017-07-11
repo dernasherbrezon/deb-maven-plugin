@@ -1,7 +1,7 @@
 Package: ${config.artifactId}
 Version: ${config.version}
 Section: ${config.section}
-Priority: ${config.priority}
+Priority: ${config.priority.getName()}
 Architecture: ${config.arch}
 Maintainer: ${config.maintainer}
 <#if config.depends?has_content>

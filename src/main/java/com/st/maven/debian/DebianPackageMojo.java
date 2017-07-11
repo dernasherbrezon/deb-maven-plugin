@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -159,9 +160,9 @@ public class DebianPackageMojo extends AbstractMojo {
 			config.setArch(arch);
 		}
 		if (priority == null || priority.trim().length() == 0) {
-			config.setPriority("standard");
+			config.setPriority(Priority.STANDARD);
 		} else {
-			config.setPriority(priority);
+			config.setPriority(Priority.valueOf(priority.toUpperCase(Locale.UK)));
 		}
 
 		ArFileOutputStream aros = null;
