@@ -65,7 +65,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * The maven project.
 	 * 
-	 * @parameter expression="project"
+	 * @parameter property="project"
 	 * @readonly
 	 */
 	private MavenProject project;
@@ -353,6 +353,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			long size = preinstBaseData.length;
 			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
 			preinstEntry.setSize(size);
+			preinstEntry.setMode(0755);
 			tar.putArchiveEntry(preinstEntry);
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
@@ -361,6 +362,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			size = postinstBaseData.length;
 			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
 			postinstEntry.setSize(size);
+			postinstEntry.setMode(0755);
 			tar.putArchiveEntry(postinstEntry);
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
@@ -369,6 +371,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			size = prermBaseData.length;
 			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
 			prermEntry.setSize(size);
+			prermEntry.setMode(0755);
 			tar.putArchiveEntry(prermEntry);
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
@@ -377,6 +380,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			size = postrmBaseData.length;
 			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
 			postrmEntry.setSize(size);
+			postrmEntry.setMode(0755);
 			tar.putArchiveEntry(postrmEntry);
 			tar.write(postrmBaseData);
 			tar.closeArchiveEntry();
