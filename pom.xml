@@ -83,7 +83,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.5</version>
+				<version>1.6</version>
 				<executions>
 					<execution>
 						<id>sign-artifacts</id>
@@ -91,6 +91,10 @@
 						<goals>
 							<goal>sign</goal>
 						</goals>
+						<configuration>
+							<keyname>6B2EEAD3</keyname>
+							<passphraseServerId>gpg.passphrase</passphraseServerId>
+						</configuration>
    					</execution>
 				</executions>
 			</plugin>		
@@ -179,7 +183,7 @@
 		<url>https://github.com/dernasherbrezon/deb-maven-plugin</url>
 		<connection>scm:git:git@github.com/dernasherbrezon/deb-maven-plugin.git</connection>
 		<developerConnection>scm:git:https://github.com/dernasherbrezon/deb-maven-plugin.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>deb-maven-plugin-1.4</tag>
   </scm>
 	
 	<issueManagement>
