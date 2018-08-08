@@ -200,6 +200,9 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private void fillDefaults() {
 		unixUserId = unixUserId.trim();
+		if (osDependencies == null) {
+			osDependencies = new HashMap<>();
+		}
 		if (Boolean.TRUE.equals(javaServiceWrapper) && !osDependencies.containsKey("service-wrapper")) {
 			osDependencies.put("service-wrapper", null);
 		}
