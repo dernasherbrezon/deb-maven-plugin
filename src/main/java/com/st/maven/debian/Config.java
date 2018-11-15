@@ -14,39 +14,66 @@ public class Config {
 	private String section;
 	private String arch;
 	private Priority priority;
+	private String sourceUrl;
+	private String copyright;
+	private LicenseName licenseName;
+
+	public LicenseName getLicenseName() {
+		return licenseName;
+	}
 	
+	public void setLicenseName(LicenseName licenseName) {
+		this.licenseName = licenseName;
+	}
+
+	public String getCopyright() {
+		return copyright;
+	}
+
+	public void setCopyright(String copyright) {
+		this.copyright = copyright;
+	}
+
+	public String getSourceUrl() {
+		return sourceUrl;
+	}
+
+	public void setSourceUrl(String sourceUrl) {
+		this.sourceUrl = sourceUrl;
+	}
+
 	public Priority getPriority() {
 		return priority;
 	}
-	
+
 	public void setPriority(Priority priority) {
 		this.priority = priority;
 	}
-	
+
 	public String getArch() {
 		return arch;
 	}
-	
+
 	public void setArch(String arch) {
 		this.arch = arch;
 	}
-	
+
 	public String getSection() {
 		return section;
 	}
-	
+
 	public void setSection(String section) {
 		this.section = section;
 	}
-	
+
 	public String getInstallDir() {
 		return installDir;
 	}
-	
+
 	public void setInstallDir(String installDir) {
 		this.installDir = installDir;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
@@ -74,7 +101,7 @@ public class Config {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-	
+
 	public String getVersion() {
 		return version;
 	}

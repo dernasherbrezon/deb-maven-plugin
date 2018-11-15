@@ -164,6 +164,11 @@ public class DebianPackageMojo extends AbstractMojo {
 		} else {
 			config.setPriority(Priority.valueOf(priority.toUpperCase(Locale.UK)));
 		}
+		if (project.getScm() != null && project.getScm().getUrl() != null) {
+			config.setSourceUrl(project.getScm().getUrl());
+		}
+		config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
+		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
 
 		ArFileOutputStream aros = null;
 		try {
@@ -230,6 +235,19 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
 			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
 		}
+		if (project.getOrganization() == null || project.getOrganization().getName() == null || project.getOrganization().getName().trim().length() == 0) {
+			throw new MojoExecutionException("project organization is mandatory. This is used in copyright file. Please specify valid \"organization\" entry");
+		}
+		if (project.getInceptionYear() == null) {
+			throw new MojoExecutionException("inceptionYear is required for copyright file");
+		}
+		if (project.getLicenses() == null || project.getLicenses().isEmpty()) {
+			throw new MojoExecutionException("licenses are required for copyright file. At least one should be specified");
+		}
+		LicenseName licenseName = LicenseName.valueOfShortName(project.getLicenses().get(0).getName());
+		if (licenseName == null) {
+			throw new MojoExecutionException("unsupported license name. Valid values are: " + LicenseName.getAllShortNames());
+		}
 		Developer dev = project.getDevelopers().get(0);
 		if (dev == null) {
 			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
@@ -260,6 +278,7 @@ public class DebianPackageMojo extends AbstractMojo {
 				tar.write(daemonData);
 				tar.closeArchiveEntry();
 			}
+			setupCopyright(config, tar);
 			String packageBaseDir = "home/" + unixUserId + "/" + project.getArtifactId() + "/";
 			if (fileSets != null && !fileSets.isEmpty()) {
 				writeDirectory(tar, packageBaseDir);
@@ -276,6 +295,19 @@ public class DebianPackageMojo extends AbstractMojo {
 		} finally {
 			IOUtils.closeQuietly(tar);
 		}
+	}
+
+	private void setupCopyright(Config config, TarArchiveOutputStream tar) throws TemplateException, IOException, MojoExecutionException {
+		byte[] data = processTemplate(freemarkerConfig, config, "copyright.ftl");
+		long size = data.length;
+		String packageBaseDir = "usr/share/doc/" + project.getArtifactId() + "/";
+		writeDirectory(tar, packageBaseDir);
+		TarArchiveEntry copyrightEntry = new TarArchiveEntry(packageBaseDir + "copyright");
+		copyrightEntry.setSize(size);
+		copyrightEntry.setMode(040644);
+		tar.putArchiveEntry(copyrightEntry);
+		tar.write(data);
+		tar.closeArchiveEntry();
 	}
 
 	private void addRecursively(Config config, TarArchiveOutputStream tar, Fileset fileset) throws MojoExecutionException {
