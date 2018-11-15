@@ -17,7 +17,16 @@ public class Config {
 	private String sourceUrl;
 	private String copyright;
 	private LicenseName licenseName;
-
+	private Boolean javaServiceWrapper;
+	
+	public Boolean getJavaServiceWrapper() {
+		return javaServiceWrapper;
+	}
+	
+	public void setJavaServiceWrapper(Boolean javaServiceWrapper) {
+		this.javaServiceWrapper = javaServiceWrapper;
+	}
+	
 	public LicenseName getLicenseName() {
 		return licenseName;
 	}

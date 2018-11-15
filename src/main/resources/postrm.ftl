@@ -1,6 +1,8 @@
+<#if config.javaServiceWrapper>
 if [ "$1" = "purge" ] ; then
         update-rc.d ${config.artifactId} remove >/dev/null || true
 fi
+</#if>
 
 USER_HOME=`echo ~${config.user}`
 

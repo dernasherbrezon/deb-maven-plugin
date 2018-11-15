@@ -139,6 +139,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setDescription(project.getDescription());
 		config.setGroup(unixGroupId);
 		config.setUser(unixUserId);
+		config.setJavaServiceWrapper(javaServiceWrapper);
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 		config.setVersion(sdf.format(new Date()));
@@ -321,6 +322,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		try {
 			if (!sourceFile.isDirectory()) {
 				TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
+				if (sourceFile.canExecute()) {
+					curEntry.setMode(040744);
+				}
 				if (fileset.isFilter()) {
 					byte[] bytes = processTemplate(freemarkerConfig, config, fileset.getSource());
 					curEntry.setSize(bytes.length);

@@ -6,6 +6,7 @@ case "$1" in
         chmod -R 750  $USER_HOME/${config.artifactId}
 ;;
 esac
+<#if config.javaServiceWrapper>
 if [ -x "/etc/init.d/${config.artifactId}" ]; then
         update-rc.d ${config.artifactId} defaults >/dev/null
         if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
@@ -14,3 +15,4 @@ if [ -x "/etc/init.d/${config.artifactId}" ]; then
                 /etc/init.d/${config.artifactId} start || true
         fi
 fi
+</#if>
