@@ -34,36 +34,31 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     </tr>
   </thead>
   <tbody>
-	  <tr>
+	<tr>
     <td>unixUserId</td>
     <td>${config.unixUserId}</td>
     <td>User name for application files permissions.</td>
     </tr>
-    
-	  <tr>
+    <tr>
     <td>unixGroupId</td>
     <td>${config.unixGroupId}</td>
     <td>User group name for application files permissions.</td>
     </tr>
-    
 	  <tr>
     <td>osDependencies</td>
     <td></td>
     <td>List of ubuntu dependencies. Example: &lt;logrotate&gt;>=3.7.8&lt;/logrotate&gt;. This will add .deb package dependency logrotate with version >=3.7.8</td>
     </tr>
-
 	  <tr>
     <td>javaServiceWrapper</td>
     <td></td>
     <td>Support tanuki service wrapper. This will create daemon configuration in `/etc/init.d/` directory and configure to use tanuki service wrapper</td>
     </tr>
-
 	  <tr>
     <td>fileSets/fileSet*</td>
     <td></td>
     <td>File set to include into final .deb. Could be file or directory</td>
     </tr>
-    
     <tr>
     <td>attachArtifact</td>
     <td></td>
