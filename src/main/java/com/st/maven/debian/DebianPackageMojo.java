@@ -215,10 +215,9 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private String composeInstallDir() {
 		if (installDir != null && !installDir.trim().isEmpty()) {
-			installDir = installDir.startsWith("/") ? installDir.substring(1) : installDir;
 			return installDir.endsWith("/") ? installDir + project.getArtifactId() : installDir + "/" + project.getArtifactId();
 		}
-		return "home/" + unixUserId + "/" + project.getArtifactId();
+		return "/home/" + unixUserId + "/" + project.getArtifactId();
 	}
 
 	private void fillDefaults() {
@@ -242,6 +241,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		if (unixUserId.trim().length() > 8) {
 			throw new MojoExecutionException("unixUserId lenght should be less than 8");
+		}
+		if (installDir != null && !installDir.startsWith("/")) {
+			throw new MojoExecutionException("installDir must be absolute");
 		}
 		File debDir = new File(BASE_DIR);
 		if (!debDir.exists()) {
@@ -294,7 +296,8 @@ public class DebianPackageMojo extends AbstractMojo {
 				tar.closeArchiveEntry();
 			}
 			setupCopyright(config, tar);
-			String packageBaseDir = config.getInstallDir() + "/";
+			// make path relative
+			String packageBaseDir = config.getInstallDir().substring(1) + "/";
 			if (fileSets != null && !fileSets.isEmpty()) {
 				writeDirectory(tar, packageBaseDir);
 

@@ -6,7 +6,7 @@ fi
 
 case "$1" in
         purge|remove)
-                rm -R /${config.installDir}
+                rm -R "${config.installDir}"
         ;;
         upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         ;;
