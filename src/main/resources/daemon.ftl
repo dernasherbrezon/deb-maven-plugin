@@ -24,14 +24,14 @@ APP_LONG_NAME="${config.name}"
 
 # Wrapper
 WRAPPER_CMD="/usr/sbin/wrapper"
-WRAPPER_CONF="/${config.installDir}/etc/wrapper.app.conf"
+WRAPPER_CONF="${config.installDir}/etc/wrapper.app.conf"
 
 # Priority at which to run the wrapper.  See "man nice" for valid priorities.
 #  nice is only used if a priority is specified.
 PRIORITY=
 
 # Location of the pid file.
-PIDDIR="/${config.installDir}/log"
+PIDDIR="${config.installDir}/log"
 
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and
