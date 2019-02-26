@@ -47,7 +47,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <tr>
     <td>installDir</td>
     <td></td>
-    <td>The directory into which the artefact is going to be installed. This value is optional. /home/unixUserId will be used if omitted </td>
+    <td>The directory into which the artefact is going to be installed. This value is optional. `/home/unixUserId` will be used if omitted </td>
     </tr>
 	  <tr>
     <td>osDependencies</td>
@@ -63,6 +63,11 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <td>fileSets/fileSet*</td>
     <td></td>
     <td>File set to include into final .deb. Could be file or directory</td>
+    </tr>
+      <tr>
+    <td>appShortcutsSourceDir</td>
+    <td></td>
+    <td>The directory where the application desktop shortcuts are located. The .desktop files will be copied into the `/usr/share/applications/` directory. This value is optional.</td>
     </tr>
     <tr>
     <td>attachArtifact</td>
@@ -124,6 +129,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
 		<unixUserId>ubuntu</unixUserId>
 		<unixGroupId>ubuntu</unixGroupId>
 		<installDir>/usr/bin</installDir>
+		<appShortcutsSourceDir>${basedir}/src/shortcuts</appShortcutsSourceDir>
 		<osDependencies>
 			<openjdk-7-jdk></openjdk-7-jdk>
 			<nginx></nginx>

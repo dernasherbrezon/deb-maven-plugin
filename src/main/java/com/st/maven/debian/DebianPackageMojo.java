@@ -88,6 +88,11 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * @parameter
 	 */
+	private String appShortcutsSourceDir;
+
+	/**
+	 * @parameter
+	 */
 	private String section;
 
 	/**
@@ -306,6 +311,12 @@ public class DebianPackageMojo extends AbstractMojo {
 					curPath.setTarget(packageBaseDir + curPath.getTarget());
 					addRecursively(config, tar, curPath);
 				}
+			}
+			if (appShortcutsSourceDir != null) {
+				final String appShortcutsTargetDir = "usr/share/applications/";
+				writeDirectory(tar, appShortcutsTargetDir);
+				Fileset fileset = new Fileset(this.appShortcutsSourceDir, appShortcutsTargetDir, false);
+				addRecursively(config, tar, fileset);
 			}
 
 		} catch (Exception e) {
