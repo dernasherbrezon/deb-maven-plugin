@@ -168,7 +168,11 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getScm() != null && project.getScm().getUrl() != null) {
 			config.setSourceUrl(project.getScm().getUrl());
 		}
-		config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
+		if (project.getOrganization() != null  && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
+			config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
+		} else {
+			config.setCopyright(project.getInceptionYear() + ", " + dev.getName());
+		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
 
 		ArFileOutputStream aros = null;
@@ -235,9 +239,6 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
 			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
-		}
-		if (project.getOrganization() == null || project.getOrganization().getName() == null || project.getOrganization().getName().trim().length() == 0) {
-			throw new MojoExecutionException("project organization is mandatory. This is used in copyright file. Please specify valid \"organization\" entry");
 		}
 		if (project.getInceptionYear() == null) {
 			throw new MojoExecutionException("inceptionYear is required for copyright file");
