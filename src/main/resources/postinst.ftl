@@ -1,9 +1,8 @@
-USER_HOME=`echo ~${config.user}`
 
 case "$1" in
         configure)
-        chown -R ${config.user}:${config.group} $USER_HOME/${config.artifactId}
-        chmod -R 750  $USER_HOME/${config.artifactId}
+        chown -R ${config.user}:${config.group} "/${config.installDir}""
+        chmod -R 750  "/${config.installDir}"
 ;;
 esac
 <#if config.javaServiceWrapper>

@@ -78,6 +78,11 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * @parameter
 	 */
+	private String installDir;
+
+	/**
+	 * @parameter
+	 */
 	private List<Fileset> fileSets;
 
 	/**
@@ -149,7 +154,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setName(project.getName());
 		config.setDescription(project.getDescription());
 		config.setDepends(formatDependencies(osDependencies));
-		config.setInstallDir("/home/" + unixUserId + "/" + project.getArtifactId());
+		config.setInstallDir(composeInstallDir());
 		if (section == null || section.trim().length() == 0) {
 			config.setSection("java");
 		} else {
@@ -206,6 +211,14 @@ public class DebianPackageMojo extends AbstractMojo {
 				}
 			}
 		}
+	}
+
+	private String composeInstallDir() {
+		if (installDir != null && !installDir.trim().isEmpty()) {
+			installDir = installDir.startsWith("/") ? installDir.substring(1) : installDir;
+			return installDir.endsWith("/") ? installDir + project.getArtifactId() : installDir + "/" + project.getArtifactId();
+		}
+		return "home/" + unixUserId + "/" + project.getArtifactId();
 	}
 
 	private void fillDefaults() {
@@ -281,7 +294,7 @@ public class DebianPackageMojo extends AbstractMojo {
 				tar.closeArchiveEntry();
 			}
 			setupCopyright(config, tar);
-			String packageBaseDir = "home/" + unixUserId + "/" + project.getArtifactId() + "/";
+			String packageBaseDir = config.getInstallDir() + "/";
 			if (fileSets != null && !fileSets.isEmpty()) {
 				writeDirectory(tar, packageBaseDir);
 

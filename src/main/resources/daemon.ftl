@@ -22,18 +22,16 @@
 APP_NAME="${config.artifactId}"
 APP_LONG_NAME="${config.name}"
 
-USER_HOME=`echo ~${config.user}`
-
 # Wrapper
 WRAPPER_CMD="/usr/sbin/wrapper"
-WRAPPER_CONF="$USER_HOME/${config.artifactId}/etc/wrapper.app.conf"
+WRAPPER_CONF="/${config.installDir}/etc/wrapper.app.conf"
 
 # Priority at which to run the wrapper.  See "man nice" for valid priorities.
 #  nice is only used if a priority is specified.
 PRIORITY=
 
 # Location of the pid file.
-PIDDIR="$USER_HOME/${config.artifactId}/log"
+PIDDIR="/${config.installDir}/log"
 
 # If uncommented, causes the Wrapper to be shutdown using an anchor file.
 #  When launched with the 'start' command, it will also ignore all INT and

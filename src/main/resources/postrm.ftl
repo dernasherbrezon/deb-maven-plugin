@@ -4,11 +4,9 @@ if [ "$1" = "purge" ] ; then
 fi
 </#if>
 
-USER_HOME=`echo ~${config.user}`
-
 case "$1" in
         purge|remove)
-                rm -R $USER_HOME/${config.artifactId}
+                rm -R /${config.installDir}
         ;;
         upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         ;;
