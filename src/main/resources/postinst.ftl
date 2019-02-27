@@ -2,7 +2,9 @@
 case "$1" in
         configure)
         chown -R ${config.user}:${config.group} "${config.installDir}"
-        chmod -R 750  "${config.installDir}"
+        chmod -R 644  "${config.installDir}"
+        find "${config.installDir}" -type d -print0 | xargs -0 chmod 755
+        find "${config.installDir}" -type f -iname "*.bin" -o -iname "*.sh" -print0 | xargs -0 chmod 755
 ;;
 esac
 <#if config.javaServiceWrapper>
