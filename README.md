@@ -44,6 +44,11 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <td>${config.unixGroupId}</td>
     <td>User group name for application files permissions.</td>
     </tr>
+    <tr>
+    <td>installDir</td>
+    <td></td>
+    <td>The directory into which the artefact is going to be installed. This value is optional. `/home/unixUserId` will be used if omitted </td>
+    </tr>
 	  <tr>
     <td>osDependencies</td>
     <td></td>
@@ -118,6 +123,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
 	<configuration>
 		<unixUserId>ubuntu</unixUserId>
 		<unixGroupId>ubuntu</unixGroupId>
+		<installDir>/usr/bin</installDir>
 		<osDependencies>
 			<openjdk-7-jdk></openjdk-7-jdk>
 			<nginx></nginx>
