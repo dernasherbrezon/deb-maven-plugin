@@ -180,11 +180,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
 
-		ArFileOutputStream aros = null;
-		try {
-			File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
-			getLog().info("Building deb: " + debFile.getAbsolutePath());
-			aros = new ArFileOutputStream(debFile.getAbsolutePath());
+		File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
+		getLog().info("Building deb: " + debFile.getAbsolutePath());
+		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
 			aros.putNextEntry(createEntry("debian-binary"));
 			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
 			aros.closeEntry();
@@ -202,14 +200,6 @@ public class DebianPackageMojo extends AbstractMojo {
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create .deb file", e);
-		} finally {
-			if (aros != null) {
-				try {
-					aros.close();
-				} catch (IOException e) {
-					throw new MojoExecutionException("unable to close .deb file", e);
-				}
-			}
 		}
 	}
 
