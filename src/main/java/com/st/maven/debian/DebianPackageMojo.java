@@ -123,7 +123,8 @@ public class DebianPackageMojo extends AbstractMojo {
 	private Boolean attachArtifact;
 
 	private final static String BASE_DIR = "./src/main/deb";
-	private final static Pattern email = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
+	private final static Pattern email = Pattern
+			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private Configuration freemarkerConfig = new Configuration();
 	private Set<String> dirsAdded = new HashSet<String>();
 	private Set<String> ignore = new HashSet<String>();
@@ -173,7 +174,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getScm() != null && project.getScm().getUrl() != null) {
 			config.setSourceUrl(project.getScm().getUrl());
 		}
-		if (project.getOrganization() != null  && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
+		if (project.getOrganization() != null && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
 			config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
 		} else {
 			config.setCopyright(project.getInceptionYear() + ", " + dev.getName());
@@ -181,6 +182,12 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
 
 		File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
+		
+		// sometimes ./target/ directory might not exist
+		// for example with turned off jar/install/deploy plugins
+		if (!debFile.getParentFile().exists() && !debFile.getParentFile().mkdirs()) {
+			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
+		}
 		getLog().info("Building deb: " + debFile.getAbsolutePath());
 		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
 			aros.putNextEntry(createEntry("debian-binary"));
