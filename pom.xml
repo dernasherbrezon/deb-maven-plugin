@@ -1,10 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.aerse.maven</groupId>
 	<artifactId>deb-maven-plugin</artifactId>
-	<version>1.9-SNAPSHOT</version>
+	<version>1.9</version>
 	<packaging>maven-plugin</packaging>
 	<name>.deb packages</name>
 	<description>Plugin to generate .deb packages</description>
@@ -174,20 +172,6 @@
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>2.7</version>
-						<executions>
-							<execution>
-								<id>javadoc</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
 						<version>2.1.2</version>
 						<executions>
@@ -222,7 +206,7 @@
 		<url>https://github.com/dernasherbrezon/deb-maven-plugin</url>
 		<connection>scm:git:git@github.com/dernasherbrezon/deb-maven-plugin.git</connection>
 		<developerConnection>scm:git:https://github.com/dernasherbrezon/deb-maven-plugin.git</developerConnection>
-		<tag>deb-maven-plugin-1.4</tag>
+		<tag>deb-maven-plugin-1.9</tag>
 	</scm>
 
 	<issueManagement>
