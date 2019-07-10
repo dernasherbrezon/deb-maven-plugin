@@ -110,7 +110,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
 <plugin>
 	<groupId>com.aerse.maven</groupId>
 	<artifactId>deb-maven-plugin</artifactId>
-	<version>1.0</version>
+	<version>1.9</version>
 	<executions>
 		<execution>
 			<id>package</id>
