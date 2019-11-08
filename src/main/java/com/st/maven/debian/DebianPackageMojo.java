@@ -126,8 +126,12 @@ public class DebianPackageMojo extends AbstractMojo {
 	 * @parameter default-value=true;
 	 */
 	private Boolean generateVersion;
-
-	private final static String BASE_DIR = "./src/main/deb";
+	
+	/**
+	 * @parameter default-value="${project.basedir}/src/main/deb";
+	 */
+	private String debBaseDir;
+	
 	private final static Pattern email = Pattern
 			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private final static Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
@@ -257,9 +261,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (installDir != null && !installDir.startsWith("/")) {
 			throw new MojoExecutionException("installDir must be absolute");
 		}
-		File debDir = new File(BASE_DIR);
+		File debDir = new File(debBaseDir);
 		if (!debDir.exists()) {
-			throw new MojoExecutionException(".deb base directory doesnt exist: " + BASE_DIR);
+			throw new MojoExecutionException(".deb base directory doesnt exist: " + debBaseDir);
 		}
 		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
 			throw new MojoExecutionException("project description is mandatory");
@@ -423,7 +427,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(controlData);
 			tar.closeArchiveEntry();
 
-			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", BASE_DIR + File.separator + "preinst", false));
+			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", debBaseDir + File.separator + "preinst", false));
 			long size = preinstBaseData.length;
 			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
 			preinstEntry.setSize(size);
@@ -432,7 +436,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst", true));
+			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", debBaseDir + File.separator + "postinst", true));
 			size = postinstBaseData.length;
 			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
 			postinstEntry.setSize(size);
@@ -441,7 +445,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm", false));
+			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", debBaseDir + File.separator + "prerm", false));
 			size = prermBaseData.length;
 			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
 			prermEntry.setSize(size);
@@ -450,7 +454,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm", false));
+			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", debBaseDir + File.separator + "postrm", false));
 			size = postrmBaseData.length;
 			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
 			postrmEntry.setSize(size);
