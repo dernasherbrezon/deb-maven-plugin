@@ -28,6 +28,7 @@ public class DebianPackageMojoTest {
 		try {
 			mm.execute();
 		} catch (Exception e) {
+			e.printStackTrace();
 			fail("unable to run plugin: " + e.getMessage());
 		}
 	}

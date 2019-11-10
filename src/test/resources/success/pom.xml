@@ -24,7 +24,20 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
-	
+
+	<dependencies>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -52,6 +65,14 @@
 						<fileSet>
 							<source>${project.basedir}/src/main/deb</source>
 							<target>/</target>
+						</fileSet>
+						<fileSet>
+							<source>${project.basedir}/src/main/deb/etc</source>
+							<target>/etc</target>
+						</fileSet>
+						<fileSet>
+							<source>${project.build.directory}/assembly-lib/lib</source>
+							<target>lib</target>
 						</fileSet>
 					</fileSets>
 				</configuration>
