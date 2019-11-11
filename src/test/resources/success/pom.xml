@@ -57,10 +57,12 @@
 					<unixGroupId>pi</unixGroupId>
 					<arch>armhf</arch>
 					<section>embedded</section>
+					<installDir>/opt/local/</installDir>
 					<osDependencies>
 						<r2cloud-ui>>=1513613469</r2cloud-ui>
 					</osDependencies>
 					<javaServiceWrapper>false</javaServiceWrapper>
+					<attachArtifact>true</attachArtifact>
 					<fileSets>
 						<fileSet>
 							<source>${project.basedir}/src/main/deb</source>

@@ -1,6 +1,6 @@
 package com.st.maven.debian;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 
@@ -25,12 +25,8 @@ public class DebianPackageMojoTest {
 		MavenProject mavenProject = mrule.readMavenProject(basedir);
 		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
-		try {
-			mm.execute();
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("unable to run plugin: " + e.getMessage());
-		}
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
 	}
 
 }
