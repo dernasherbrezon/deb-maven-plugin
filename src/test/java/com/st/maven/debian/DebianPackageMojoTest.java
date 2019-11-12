@@ -61,6 +61,10 @@ public class DebianPackageMojoTest {
 		try (ArInputStream aris = new ArInputStream(new BufferedInputStream(new FileInputStream(actualFile)))) {
 			ArEntry curEntry = null;
 			while ((curEntry = aris.getNextEntry()) != null) {
+				if (curEntry.getFilename().equals("data.tar.gz")) {
+					// skip for now
+					continue;
+				}
 				File f = expectedFilenames.remove(curEntry.getFilename());
 				assertNotNull("unexpected file: " + curEntry.getFilename(), f);
 				if (f.isFile()) {
@@ -69,10 +73,6 @@ public class DebianPackageMojoTest {
 						assertArrayEquals(expected, curEntry.getData());
 					}
 				} else if (f.isDirectory()) {
-					if (curEntry.getFilename().equals("data.tar.gz")) {
-						// skip for now
-						continue;
-					}
 					try (TarArchiveInputStream tar = new TarArchiveInputStream(new GZIPInputStream(new ByteArrayInputStream(curEntry.getData())))) {
 						assertTar(".", f, tar, expectedVersion);
 					}
