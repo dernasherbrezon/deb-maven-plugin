@@ -62,7 +62,7 @@ public class DebianPackageMojoTest {
 			ArEntry curEntry = null;
 			while ((curEntry = aris.getNextEntry()) != null) {
 				File f = expectedFilenames.remove(curEntry.getFilename());
-				assertNotNull(f);
+				assertNotNull("unexpected file: " + curEntry.getFilename(), f);
 				if (f.isFile()) {
 					try (InputStream is = new FileInputStream(f)) {
 						byte[] expected = IOUtils.toByteArray(is);
@@ -94,7 +94,7 @@ public class DebianPackageMojoTest {
 				continue;
 			}
 			File f = expectedFilenames.remove(current.getName());
-			assertNotNull("expected: " + current.getName(), f);
+			assertNotNull("unexpected file: " + current.getName(), f);
 			if (f.isDirectory()) {
 				assertTar(current.getName(), f, tar, expectedVersion);
 			} else {
