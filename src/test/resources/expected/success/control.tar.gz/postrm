@@ -1,0 +1,15 @@
+#!/bin/bash -e
+
+case "$1" in
+        purge|remove)
+                if [ -d "/home/pi/sample" ]; then
+                    rm -R "/home/pi/sample"
+                fi
+        ;;
+        upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+        *)
+                echo "$0 called with unknown argument \`$1'" >&2
+                exit 1
+        ;;
+esac

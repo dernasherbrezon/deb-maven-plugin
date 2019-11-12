@@ -1,0 +1,9 @@
+Package: sample
+Version: template
+Section: embedded
+Priority: standard
+Architecture: armhf
+Maintainer: Andrey Rodionov <info@r2cloud.ru>
+Depends: r2cloud-ui (>=1513613469)
+Description: Sample
+ Sample debian project

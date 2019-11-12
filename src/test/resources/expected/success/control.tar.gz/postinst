@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+case "$1" in
+        configure)
+        chown -R pi:pi "/home/pi/sample"
+;;
+esac
