@@ -267,6 +267,13 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
 			throw new MojoExecutionException("project description is mandatory");
 		}
+		// lintian considers these as ERROR
+		if (project.getDescription().equals(project.getArtifactId())) {
+			getLog().warn("description-is-pkg-name: " + project.getDescription());
+		}
+		if (project.getDescription().toLowerCase(Locale.UK).startsWith(project.getArtifactId().toLowerCase(Locale.UK))) {
+			getLog().warn("description-starts-with-package-name: " + project.getDescription());
+		}
 		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
 			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
 		}

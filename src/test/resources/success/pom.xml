@@ -7,8 +7,8 @@
 	<groupId>com.aerse.maven</groupId>
 	<artifactId>sample</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Sample</name>
-	<description>Sample debian project</description>
+	<name>Debian project for testing plugin</name>
+	<description>This projects contains all possible config options enabled</description>
 	<inceptionYear>2014</inceptionYear>
 	<organization>
 		<name>r2cloud</name>

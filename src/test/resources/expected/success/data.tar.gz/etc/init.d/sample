@@ -20,7 +20,7 @@
 
 # Application
 APP_NAME="sample"
-APP_LONG_NAME="Sample"
+APP_LONG_NAME="Debian project for testing plugin"
 
 # Wrapper
 WRAPPER_CMD="/usr/sbin/wrapper"
@@ -68,7 +68,7 @@ RUN_AS_USER=pi
 # The following two lines are used by the chkconfig command. Change as is
 #  appropriate for your application.  They should remain commented.
 # chkconfig: 2345 20 80
-# description: Sample debian project
+# description: This projects contains all possible config options enabled
 
 # When installing on On Mac OSX platforms, the following domain will be used to
 #  prefix the plist file name.
@@ -83,8 +83,8 @@ PLIST_DOMAIN=org.tanukisoftware.wrapper
 # Required-Stop:
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: Sample
-# Description: Sample debian project
+# Short-Description: Debian project for testing plugin
+# Description: This projects contains all possible config options enabled
 ### END INIT INFO
 
 # Set run level to use when installing the application to start and stop on
