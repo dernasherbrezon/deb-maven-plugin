@@ -69,6 +69,10 @@
 							<target>/etc</target>
 						</fileSet>
 						<fileSet>
+							<source>${project.basedir}/src/main/deb/lib</source>
+							<target>/lib</target>
+						</fileSet>
+						<fileSet>
 							<source>${project.build.directory}/assembly-lib/lib</source>
 							<target>lib</target>
 						</fileSet>

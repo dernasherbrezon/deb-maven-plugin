@@ -78,7 +78,7 @@ PLIST_DOMAIN=org.tanukisoftware.wrapper
 #  SUSE linux distributions.
 ### BEGIN INIT INFO
 # Provides: ${config.artifactId}
-# Required-Start: $local_fs $network $syslog
+# Required-Start: $local_fs $remote_fs $network $syslog
 # Should-Start: 
 # Required-Stop:
 # Default-Start: 2 3 4 5
