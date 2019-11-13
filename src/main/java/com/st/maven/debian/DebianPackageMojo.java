@@ -384,9 +384,6 @@ public class DebianPackageMojo extends AbstractMojo {
 		try {
 			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
 			tar.setLongFileMode(TarArchiveOutputStreamExt.LONGFILE_GNU);
-			// TarArchiveEntry rootDir = new TarArchiveEntry("./");
-			// tar.putArchiveEntry(rootDir);
-			// tar.closeArchiveEntry();
 
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
 			TarArchiveEntry controlEntry = new TarArchiveEntry("control");

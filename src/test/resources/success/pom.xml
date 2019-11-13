@@ -65,10 +65,6 @@
 					<attachArtifact>true</attachArtifact>
 					<fileSets>
 						<fileSet>
-							<source>${project.basedir}/src/main/deb</source>
-							<target>/</target>
-						</fileSet>
-						<fileSet>
 							<source>${project.basedir}/src/main/deb/etc</source>
 							<target>/etc</target>
 						</fileSet>

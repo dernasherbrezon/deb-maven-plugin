@@ -61,10 +61,6 @@ public class DebianPackageMojoTest {
 		try (ArInputStream aris = new ArInputStream(new BufferedInputStream(new FileInputStream(actualFile)))) {
 			ArEntry curEntry = null;
 			while ((curEntry = aris.getNextEntry()) != null) {
-				if (curEntry.getFilename().equals("data.tar.gz")) {
-					// skip for now
-					continue;
-				}
 				File f = expectedFilenames.remove(curEntry.getFilename());
 				assertNotNull("unexpected: " + curEntry.getFilename(), f);
 				if (f.isFile()) {
@@ -73,8 +69,9 @@ public class DebianPackageMojoTest {
 						assertArrayEquals(expected, curEntry.getData());
 					}
 				} else if (f.isDirectory()) {
+					Map<String, File> allExpected = findExpected(null, f);
 					try (TarArchiveInputStream tar = new TarArchiveInputStream(new GZIPInputStream(new ByteArrayInputStream(curEntry.getData())))) {
-						assertTar(null, f, tar, expectedVersion);
+						assertTar(allExpected, tar, expectedVersion);
 					}
 				}
 				if (expectedFilenames.isEmpty()) {
@@ -85,13 +82,12 @@ public class DebianPackageMojoTest {
 		assertTrue("missing: " + expectedFilenames.toString(), expectedFilenames.isEmpty());
 	}
 
-	private static void assertTar(String currentDirectory, File expectedDirecotry, TarArchiveInputStream tar, String expectedVersion) throws Exception {
+	private static Map<String, File> findExpected(String currentDirectory, File expectedDirecotry) {
 		if (currentDirectory != null) {
 			currentDirectory = currentDirectory + "/";
 		} else {
 			currentDirectory = "";
 		}
-		TarArchiveEntry current = null;
 		File[] expected = expectedDirecotry.listFiles();
 		Map<String, File> expectedFilenames = new HashMap<>();
 		for (File cur : expected) {
@@ -100,13 +96,19 @@ public class DebianPackageMojoTest {
 				filename = filename + "/";
 			}
 			expectedFilenames.put(filename, cur);
+			if (cur.isDirectory()) {
+				expectedFilenames.putAll(findExpected(currentDirectory + cur.getName(), cur));
+			}
 		}
+		return expectedFilenames;
+	}
+
+	private static void assertTar(Map<String, File> allExpected, TarArchiveInputStream tar, String expectedVersion) throws Exception {
+		TarArchiveEntry current = null;
 		while ((current = tar.getNextTarEntry()) != null) {
-			File f = expectedFilenames.remove(current.getName());
+			File f = allExpected.remove(current.getName());
 			assertNotNull("unexpected: " + current.getName(), f);
-			if (f.isDirectory()) {
-				assertTar(currentDirectory + f.getName(), f, tar, expectedVersion);
-			} else {
+			if (!f.isDirectory()) {
 				byte[] expectedData;
 				try (InputStream is = new FileInputStream(f)) {
 					expectedData = IOUtils.toByteArray(is);
@@ -119,11 +121,11 @@ public class DebianPackageMojoTest {
 					assertArrayEquals(f.getAbsolutePath(), expectedData, actualData);
 				}
 			}
-			if (expectedFilenames.isEmpty()) {
+			if (allExpected.isEmpty()) {
 				break;
 			}
 		}
-		assertTrue("missing: " + expectedFilenames.toString(), expectedFilenames.isEmpty());
+		assertTrue("missing: " + allExpected.toString(), allExpected.isEmpty());
 	}
 
 	private static void assertControl(byte[] expected, byte[] actual, String expectedVersion) throws Exception {

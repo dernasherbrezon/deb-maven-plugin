@@ -13,12 +13,16 @@ import org.apache.commons.compress.utils.IOUtils;
 public class TarArchiveOutputStreamExt extends TarArchiveOutputStream {
 
 	private final Set<String> addedPaths = new HashSet<>();
+	private final Set<String> addedFiles = new HashSet<>();
 
 	public TarArchiveOutputStreamExt(OutputStream os) {
 		super(os);
 	}
 
 	public void writeEntry(TarArchiveEntry entry, InputStream data) throws IOException {
+		if (!addedFiles.add(entry.getName())) {
+			throw new IOException("file already added: " + entry.getName());
+		}
 		ensureDirectoriesAdded(entry.getName());
 		putArchiveEntry(entry);
 		IOUtils.copy(data, this);
@@ -28,6 +32,9 @@ public class TarArchiveOutputStreamExt extends TarArchiveOutputStream {
 	public void writeEntry(TarArchiveEntry entry, byte[] data) throws IOException {
 		ensureDirectoriesAdded(entry.getName());
 		if (entry.getName().charAt(entry.getName().length() - 1) == '/') {
+			if (addedFiles.add(entry.getName())) {
+				throw new IOException("file already added: " + entry.getName());
+			}
 			return;
 		}
 		putArchiveEntry(entry);
