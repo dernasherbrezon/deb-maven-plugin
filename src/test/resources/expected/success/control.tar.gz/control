@@ -4,6 +4,6 @@ Section: embedded
 Priority: standard
 Architecture: armhf
 Maintainer: Andrey Rodionov <info@r2cloud.ru>
-Depends: r2cloud-ui (>=1513613469)
+Depends: r2cloud-ui (>=1513613469), service-wrapper
 Description: Sample
  Sample debian project

@@ -1,9 +1,12 @@
 #!/bin/bash -e
+if [ "$1" = "purge" ] ; then
+        update-rc.d sample remove >/dev/null || true
+fi
 
 case "$1" in
         purge|remove)
-                if [ -d "/home/pi/sample" ]; then
-                    rm -R "/home/pi/sample"
+                if [ -d "/opt/local/sample" ]; then
+                    rm -R "/opt/local/sample"
                 fi
         ;;
         upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

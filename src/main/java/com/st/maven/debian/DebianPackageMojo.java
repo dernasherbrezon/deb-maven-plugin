@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -41,7 +42,6 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.AbstractMojo;
@@ -126,17 +126,16 @@ public class DebianPackageMojo extends AbstractMojo {
 	 * @parameter default-value=true;
 	 */
 	private Boolean generateVersion;
-	
+
 	/**
 	 * @parameter default-value="${project.basedir}/src/main/deb";
 	 */
 	private String debBaseDir;
-	
+
 	private final static Pattern email = Pattern
 			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private final static Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
 	private Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
-	private Set<String> dirsAdded = new HashSet<String>();
 	private Set<String> ignore = new HashSet<String>();
 
 	@Override
@@ -247,7 +246,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		ignore.add("prerm");
 		ignore.add("postrm");
 	}
-	
+
 	private void validate() throws MojoExecutionException {
 		if (!PACKAGE_NAME.matcher(project.getArtifactId()).matches()) {
 			throw new MojoExecutionException("invalid package name: " + project.getArtifactId() + " supported: " + PACKAGE_NAME.pattern());
@@ -298,25 +297,21 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private void fillDataTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStream tar = null;
+		TarArchiveOutputStreamExt tar = null;
 		try {
-			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
-			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
+			tar.setLongFileMode(TarArchiveOutputStreamExt.LONGFILE_GNU);
 			if (Boolean.TRUE.equals(javaServiceWrapper)) {
 				byte[] daemonData = processTemplate(freemarkerConfig, config, "daemon.ftl");
 				TarArchiveEntry initScript = new TarArchiveEntry("etc/init.d/" + project.getArtifactId());
 				initScript.setSize(daemonData.length);
 				initScript.setMode(040755);
-				tar.putArchiveEntry(initScript);
-				tar.write(daemonData);
-				tar.closeArchiveEntry();
+				tar.writeEntry(initScript, daemonData);
 			}
 			setupCopyright(config, tar);
 			// make path relative
 			String packageBaseDir = config.getInstallDir().substring(1) + "/";
 			if (fileSets != null && !fileSets.isEmpty()) {
-				writeDirectory(tar, packageBaseDir);
-
 				Collections.sort(fileSets, MappingPathComparator.INSTANCE);
 				for (Fileset curPath : fileSets) {
 					// relative path is relative to the installDir
@@ -337,29 +332,32 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private void setupCopyright(Config config, TarArchiveOutputStream tar) throws TemplateException, IOException, MojoExecutionException {
+	private void setupCopyright(Config config, TarArchiveOutputStreamExt tar) throws TemplateException, IOException {
 		byte[] data = processTemplate(freemarkerConfig, config, "copyright.ftl");
 		long size = data.length;
-		String packageBaseDir = "usr/share/doc/" + project.getArtifactId() + "/";
-		writeDirectory(tar, packageBaseDir);
-		TarArchiveEntry copyrightEntry = new TarArchiveEntry(packageBaseDir + "copyright");
+		TarArchiveEntry copyrightEntry = new TarArchiveEntry("usr/share/doc/" + project.getArtifactId() + "/copyright");
 		copyrightEntry.setSize(size);
 		copyrightEntry.setMode(040644);
-		tar.putArchiveEntry(copyrightEntry);
-		tar.write(data);
-		tar.closeArchiveEntry();
+		tar.writeEntry(copyrightEntry, data);
 	}
 
-	private void addRecursively(Config config, TarArchiveOutputStream tar, Fileset fileset) throws MojoExecutionException {
+	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws MojoExecutionException {
 		File sourceFile = new File(fileset.getSource());
 		String targetFilename = fileset.getTarget();
 		// skip well-known ignore directories
 		if (ignore.contains(sourceFile.getName()) || sourceFile.getName().endsWith(".rrd") || sourceFile.getName().endsWith(".log")) {
 			return;
 		}
-		FileInputStream fis = null;
-		try {
-			if (!sourceFile.isDirectory()) {
+		if (sourceFile.isDirectory()) {
+			File[] subFiles = sourceFile.listFiles();
+			for (File curSubFile : subFiles) {
+				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName(), fileset.isFilter());
+				addRecursively(config, tar, curSubFileset);
+			}
+			return;
+		}
+		if (sourceFile.isFile()) {
+			try {
 				TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
 				if (sourceFile.canExecute()) {
 					curEntry.setMode(040744);
@@ -367,61 +365,31 @@ public class DebianPackageMojo extends AbstractMojo {
 				if (fileset.isFilter()) {
 					byte[] bytes = processTemplate(freemarkerConfig, config, fileset.getSource());
 					curEntry.setSize(bytes.length);
-					tar.putArchiveEntry(curEntry);
-					tar.write(bytes);
+					tar.writeEntry(curEntry, bytes);
 				} else {
 					curEntry.setSize(sourceFile.length());
-					tar.putArchiveEntry(curEntry);
-					fis = new FileInputStream(sourceFile);
-					IOUtils.copy(fis, tar);
+					try (InputStream fis = new FileInputStream(sourceFile)) {
+						tar.writeEntry(curEntry, fis);
+					}
 				}
-				tar.closeArchiveEntry();
-			} else if (sourceFile.isDirectory()) {
-				targetFilename += "/";
-				if (!dirsAdded.contains(targetFilename)) {
-					dirsAdded.add(targetFilename);
-					writeDirectory(tar, targetFilename);
-				}
+			} catch (Exception e) {
+				throw new MojoExecutionException("unable to write", e);
 			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to write", e);
-		} finally {
-			IOUtils.closeQuietly(fis);
 		}
 
-		if (sourceFile.isDirectory()) {
-			File[] subFiles = sourceFile.listFiles();
-			for (File curSubFile : subFiles) {
-				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName(), fileset.isFilter());
-				addRecursively(config, tar, curSubFileset);
-			}
-		}
-	}
-
-	private static void writeDirectory(TarArchiveOutputStream tar, String dirName) throws MojoExecutionException {
-		try {
-			if (!dirName.endsWith("/")) {
-				dirName = dirName + "/";
-			}
-			TarArchiveEntry curEntry = new TarArchiveEntry(dirName);
-			tar.putArchiveEntry(curEntry);
-			tar.closeArchiveEntry();
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to add directory: " + dirName, e);
-		}
 	}
 
 	private void fillControlTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStream tar = null;
+		TarArchiveOutputStreamExt tar = null;
 		try {
-			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
-			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-			TarArchiveEntry rootDir = new TarArchiveEntry("./");
-			tar.putArchiveEntry(rootDir);
-			tar.closeArchiveEntry();
+			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
+			tar.setLongFileMode(TarArchiveOutputStreamExt.LONGFILE_GNU);
+			// TarArchiveEntry rootDir = new TarArchiveEntry("./");
+			// tar.putArchiveEntry(rootDir);
+			// tar.closeArchiveEntry();
 
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
-			TarArchiveEntry controlEntry = new TarArchiveEntry("./control");
+			TarArchiveEntry controlEntry = new TarArchiveEntry("control");
 			controlEntry.setSize(controlData.length);
 			tar.putArchiveEntry(controlEntry);
 			tar.write(controlData);
@@ -429,7 +397,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", debBaseDir + File.separator + "preinst", false));
 			long size = preinstBaseData.length;
-			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
+			TarArchiveEntry preinstEntry = new TarArchiveEntry("preinst");
 			preinstEntry.setSize(size);
 			preinstEntry.setMode(0755);
 			tar.putArchiveEntry(preinstEntry);
@@ -438,7 +406,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", debBaseDir + File.separator + "postinst", true));
 			size = postinstBaseData.length;
-			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
+			TarArchiveEntry postinstEntry = new TarArchiveEntry("postinst");
 			postinstEntry.setSize(size);
 			postinstEntry.setMode(0755);
 			tar.putArchiveEntry(postinstEntry);
@@ -447,7 +415,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", debBaseDir + File.separator + "prerm", false));
 			size = prermBaseData.length;
-			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
+			TarArchiveEntry prermEntry = new TarArchiveEntry("prerm");
 			prermEntry.setSize(size);
 			prermEntry.setMode(0755);
 			tar.putArchiveEntry(prermEntry);
@@ -456,7 +424,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", debBaseDir + File.separator + "postrm", false));
 			size = postrmBaseData.length;
-			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
+			TarArchiveEntry postrmEntry = new TarArchiveEntry("postrm");
 			postrmEntry.setSize(size);
 			postrmEntry.setMode(0755);
 			tar.putArchiveEntry(postrmEntry);

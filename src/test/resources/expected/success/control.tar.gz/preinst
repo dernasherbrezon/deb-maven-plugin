@@ -3,8 +3,8 @@ if ! id pi > /dev/null 2>&1 ; then
 		useradd -m pi --shell /bin/bash
 fi
 
-if [ ! -d /home/pi/sample ]; then
-        mkdir "/home/pi/sample"
-        chown pi:pi "/home/pi/sample/"
+if [ ! -d /opt/local/sample ]; then
+        mkdir "/opt/local/sample"
+        chown pi:pi "/opt/local/sample/"
 fi
 

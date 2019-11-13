@@ -2,6 +2,14 @@
 
 case "$1" in
         configure)
-        chown -R pi:pi "/home/pi/sample"
+        chown -R pi:pi "/opt/local/sample"
 ;;
 esac
+if [ -x "/etc/init.d/sample" ]; then
+        update-rc.d sample defaults >/dev/null
+        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+                invoke-rc.d sample start || true
+        else
+                /etc/init.d/sample start || true
+        fi
+fi
