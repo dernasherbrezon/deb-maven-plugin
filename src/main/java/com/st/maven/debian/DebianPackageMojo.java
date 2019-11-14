@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.AbstractMojo;
@@ -132,11 +133,11 @@ public class DebianPackageMojo extends AbstractMojo {
 	 */
 	private String debBaseDir;
 
-	private final static Pattern email = Pattern
+	private static final Pattern EMAIL = Pattern
 			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
-	private final static Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
-	private Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
-	private Set<String> ignore = new HashSet<String>();
+	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
+	private final Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
+	private final Set<String> ignore = new HashSet<String>();
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -297,7 +298,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (dev.getEmail() == null || dev.getEmail().trim().length() == 0) {
 			throw new MojoExecutionException("project maintainer email is mandatory. Please specify valid developer email");
 		}
-		Matcher m = email.matcher(dev.getEmail());
+		Matcher m = EMAIL.matcher(dev.getEmail());
 		if (!m.matches()) {
 			throw new MojoExecutionException("invalid project maintainer email: " + dev.getEmail());
 		}
@@ -307,7 +308,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		TarArchiveOutputStreamExt tar = null;
 		try {
 			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
-			tar.setLongFileMode(TarArchiveOutputStreamExt.LONGFILE_GNU);
+			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 			if (Boolean.TRUE.equals(javaServiceWrapper)) {
 				byte[] daemonData = processTemplate(freemarkerConfig, config, "daemon.ftl");
 				TarArchiveEntry initScript = new TarArchiveEntry("etc/init.d/" + project.getArtifactId());
@@ -390,7 +391,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		TarArchiveOutputStreamExt tar = null;
 		try {
 			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
-			tar.setLongFileMode(TarArchiveOutputStreamExt.LONGFILE_GNU);
+			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
 			TarArchiveEntry controlEntry = new TarArchiveEntry("control");
