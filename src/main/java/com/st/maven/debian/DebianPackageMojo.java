@@ -43,7 +43,6 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -121,7 +120,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	/**
 	 * @parameter default-value=true;
 	 */
-	private Boolean attachArtifact;
+	private boolean attachArtifact;
 
 	/**
 	 * @parameter default-value=true;
@@ -137,7 +136,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
 	private final Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
-	private final Set<String> ignore = new HashSet<String>();
+	private final Set<String> ignore = new HashSet<>();
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -305,9 +304,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private void fillDataTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStreamExt tar = null;
-		try {
-			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
+		try (TarArchiveOutputStreamExt tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)))) {
 			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 			if (Boolean.TRUE.equals(javaServiceWrapper)) {
 				byte[] daemonData = processTemplate(freemarkerConfig, config, "daemon.ftl");
@@ -335,8 +332,6 @@ public class DebianPackageMojo extends AbstractMojo {
 
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
-		} finally {
-			IOUtils.closeQuietly(tar);
 		}
 	}
 
@@ -388,9 +383,7 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private void fillControlTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStreamExt tar = null;
-		try {
-			tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)));
+		try (TarArchiveOutputStreamExt tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)))) {
 			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
@@ -438,14 +431,6 @@ public class DebianPackageMojo extends AbstractMojo {
 
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create control tar", e);
-		} finally {
-			if (tar != null) {
-				try {
-					tar.close();
-				} catch (IOException e) {
-					getLog().error("unable to finish tar", e);
-				}
-			}
 		}
 	}
 
@@ -463,35 +448,28 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private static void appendUserScript(String file, StringBuilder builder) throws MojoExecutionException {
-		BufferedReader r = null;
-		try {
-			File f = new File(file);
+		File f = new File(file);
+		if (!f.exists()) {
+			return;
+		}
+		try (BufferedReader r = new BufferedReader(new FileReader(file))) {
 			String curLine = null;
-			if (f.exists()) {
-				r = new BufferedReader(new FileReader(file));
-				while ((curLine = r.readLine()) != null) {
-					builder.append(curLine).append('\n');
-				}
+			while ((curLine = r.readLine()) != null) {
+				builder.append(curLine).append('\n');
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to combine data", e);
-		} finally {
-			IOUtils.closeQuietly(r);
 		}
 	}
 
 	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws MojoExecutionException {
-		BufferedReader isr = null;
-		try {
-			isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), "UTF-8"));
+		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
 			String curLine = null;
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to combine data", e);
-		} finally {
-			IOUtils.closeQuietly(isr);
 		}
 	}
 
