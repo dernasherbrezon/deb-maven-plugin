@@ -370,7 +370,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		tar.writeEntry(copyrightEntry, data);
 	}
 
-	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws MojoExecutionException {
+	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws TemplateException, IOException {
 		File sourceFile = new File(fileset.getSource());
 		String targetFilename = fileset.getTarget();
 		// skip well-known ignore directories
@@ -386,17 +386,13 @@ public class DebianPackageMojo extends AbstractMojo {
 			return;
 		}
 		if (sourceFile.isFile()) {
-			try {
-				TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
-				if (sourceFile.canExecute()) {
-					curEntry.setMode(040744);
-				}
-				curEntry.setSize(sourceFile.length());
-				try (InputStream fis = new FileInputStream(sourceFile)) {
-					tar.writeEntry(curEntry, fis);
-				}
-			} catch (Exception e) {
-				throw new MojoExecutionException("unable to write", e);
+			TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
+			if (sourceFile.canExecute()) {
+				curEntry.setMode(040744);
+			}
+			curEntry.setSize(sourceFile.length());
+			try (InputStream fis = new FileInputStream(sourceFile)) {
+				tar.writeEntry(curEntry, fis);
 			}
 		}
 
@@ -454,7 +450,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private static String combine(String classpathResource, String file, boolean inverse) throws MojoExecutionException {
+	private static String combine(String classpathResource, String file, boolean inverse) throws IOException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("#!/bin/bash -e\n");
 		if (inverse) {
@@ -467,7 +463,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		return builder.toString();
 	}
 
-	private static void appendUserScript(String file, StringBuilder builder) throws MojoExecutionException {
+	private static void appendUserScript(String file, StringBuilder builder) throws IOException {
 		File f = new File(file);
 		if (!f.exists()) {
 			return;
@@ -477,19 +473,15 @@ public class DebianPackageMojo extends AbstractMojo {
 			while ((curLine = r.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to combine data", e);
 		}
 	}
 
-	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws MojoExecutionException {
+	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws IOException {
 		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
 			String curLine = null;
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to combine data", e);
 		}
 	}
 
