@@ -96,11 +96,6 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <td>target file or directory in result .deb file. Please note that in .deb file absolute paths start without "/"</td>
     </tr>    
     
-<tr>
-    <td>filter</td>
-    <td>true/false. Apply filter rules. Please note that source should contain text files.</td>
-    </tr>    
-    
   </tbody>
 </table>
 
