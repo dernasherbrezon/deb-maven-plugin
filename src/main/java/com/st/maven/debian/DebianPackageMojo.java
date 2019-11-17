@@ -62,6 +62,11 @@ import freemarker.template.TemplateExceptionHandler;
  */
 public class DebianPackageMojo extends AbstractMojo {
 
+	private static final String POSTRM = "postrm";
+	private static final String PRERM = "prerm";
+	private static final String POSTINST = "postinst";
+	private static final String PREINST = "preinst";
+
 	/**
 	 * The maven project.
 	 * 
@@ -149,6 +154,38 @@ public class DebianPackageMojo extends AbstractMojo {
 		freemarkerConfig.setClassForTemplateLoading(DebianPackageMojo.class, "/");
 		freemarkerConfig.setTimeZone(TimeZone.getTimeZone("GMT"));
 
+		Config config = setupConfig();
+
+		File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
+
+		// sometimes ./target/ directory might not exist
+		// for example with turned off jar/install/deploy plugins
+		if (!debFile.getParentFile().exists() && !debFile.getParentFile().mkdirs()) {
+			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
+		}
+		getLog().info("Building deb: " + debFile.getAbsolutePath());
+		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
+			aros.putNextEntry(createEntry("debian-binary"));
+			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
+			aros.closeEntry();
+			aros.putNextEntry(createEntry("control.tar.gz"));
+			fillControlTar(config, aros);
+			aros.closeEntry();
+			aros.putNextEntry(createEntry("data.tar.gz"));
+			fillDataTar(config, aros);
+			aros.closeEntry();
+			if (attachArtifact) {
+				VersionableAttachedArtifact artifact = new VersionableAttachedArtifact(project.getArtifact(), "deb", config.getVersion());
+				artifact.setFile(debFile);
+				artifact.setResolved(true);
+				project.addAttachedArtifact(artifact);
+			}
+		} catch (Exception e) {
+			throw new MojoExecutionException("unable to create .deb file", e);
+		}
+	}
+
+	private Config setupConfig() {
 		Config config = new Config();
 		config.setArtifactId(project.getArtifactId());
 		config.setDescription(project.getDescription());
@@ -195,34 +232,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			config.setCopyright(project.getInceptionYear() + ", " + dev.getName());
 		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
-
-		File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
-
-		// sometimes ./target/ directory might not exist
-		// for example with turned off jar/install/deploy plugins
-		if (!debFile.getParentFile().exists() && !debFile.getParentFile().mkdirs()) {
-			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
-		}
-		getLog().info("Building deb: " + debFile.getAbsolutePath());
-		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
-			aros.putNextEntry(createEntry("debian-binary"));
-			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
-			aros.closeEntry();
-			aros.putNextEntry(createEntry("control.tar.gz"));
-			fillControlTar(config, aros);
-			aros.closeEntry();
-			aros.putNextEntry(createEntry("data.tar.gz"));
-			fillDataTar(config, aros);
-			aros.closeEntry();
-			if (attachArtifact) {
-				VersionableAttachedArtifact artifact = new VersionableAttachedArtifact(project.getArtifact(), "deb", config.getVersion());
-				artifact.setFile(debFile);
-				artifact.setResolved(true);
-				project.addAttachedArtifact(artifact);
-			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to create .deb file", e);
-		}
+		return config;
 	}
 
 	private String composeInstallDir() {
@@ -241,10 +251,10 @@ public class DebianPackageMojo extends AbstractMojo {
 			osDependencies.put("service-wrapper", null);
 		}
 		ignore.add(".svn");
-		ignore.add("preinst");
-		ignore.add("postinst");
-		ignore.add("prerm");
-		ignore.add("postrm");
+		ignore.add(PREINST);
+		ignore.add(POSTINST);
+		ignore.add(PRERM);
+		ignore.add(POSTRM);
 	}
 
 	private void validate() throws MojoExecutionException {
@@ -264,6 +274,15 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (!debDir.exists()) {
 			throw new MojoExecutionException(".deb base directory doesnt exist: " + debBaseDir);
 		}
+		validateDescription();
+		if (project.getInceptionYear() == null) {
+			throw new MojoExecutionException("inceptionYear is required for copyright file");
+		}
+		validateLicense();
+		validateDeveloper();
+	}
+
+	private void validateDescription() throws MojoExecutionException {
 		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
 			throw new MojoExecutionException("project description is mandatory");
 		}
@@ -274,18 +293,21 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getDescription().toLowerCase(Locale.UK).startsWith(project.getArtifactId().toLowerCase(Locale.UK))) {
 			getLog().warn("description-starts-with-package-name: " + project.getDescription());
 		}
-		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
-			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
-		}
-		if (project.getInceptionYear() == null) {
-			throw new MojoExecutionException("inceptionYear is required for copyright file");
-		}
+	}
+
+	private void validateLicense() throws MojoExecutionException {
 		if (project.getLicenses() == null || project.getLicenses().isEmpty()) {
 			throw new MojoExecutionException("licenses are required for copyright file. At least one should be specified");
 		}
 		LicenseName licenseName = LicenseName.valueOfShortName(project.getLicenses().get(0).getName());
 		if (licenseName == null) {
 			throw new MojoExecutionException("unsupported license name. Valid values are: " + LicenseName.getAllShortNames());
+		}
+	}
+
+	private void validateDeveloper() throws MojoExecutionException {
+		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
+			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
 		}
 		Developer dev = project.getDevelopers().get(0);
 		if (dev == null) {
@@ -393,36 +415,36 @@ public class DebianPackageMojo extends AbstractMojo {
 			tar.write(controlData);
 			tar.closeArchiveEntry();
 
-			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", debBaseDir + File.separator + "preinst", false));
+			byte[] preinstBaseData = processTemplate(PREINST, freemarkerConfig, config, combine("preinst.ftl", debBaseDir + File.separator + PREINST, false));
 			long size = preinstBaseData.length;
-			TarArchiveEntry preinstEntry = new TarArchiveEntry("preinst");
+			TarArchiveEntry preinstEntry = new TarArchiveEntry(PREINST);
 			preinstEntry.setSize(size);
 			preinstEntry.setMode(0755);
 			tar.putArchiveEntry(preinstEntry);
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", debBaseDir + File.separator + "postinst", true));
+			byte[] postinstBaseData = processTemplate(POSTINST, freemarkerConfig, config, combine("postinst.ftl", debBaseDir + File.separator + POSTINST, true));
 			size = postinstBaseData.length;
-			TarArchiveEntry postinstEntry = new TarArchiveEntry("postinst");
+			TarArchiveEntry postinstEntry = new TarArchiveEntry(POSTINST);
 			postinstEntry.setSize(size);
 			postinstEntry.setMode(0755);
 			tar.putArchiveEntry(postinstEntry);
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", debBaseDir + File.separator + "prerm", false));
+			byte[] prermBaseData = processTemplate(PRERM, freemarkerConfig, config, combine("prerm.ftl", debBaseDir + File.separator + PRERM, false));
 			size = prermBaseData.length;
-			TarArchiveEntry prermEntry = new TarArchiveEntry("prerm");
+			TarArchiveEntry prermEntry = new TarArchiveEntry(PRERM);
 			prermEntry.setSize(size);
 			prermEntry.setMode(0755);
 			tar.putArchiveEntry(prermEntry);
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", debBaseDir + File.separator + "postrm", false));
+			byte[] postrmBaseData = processTemplate(POSTRM, freemarkerConfig, config, combine("postrm.ftl", debBaseDir + File.separator + POSTRM, false));
 			size = postrmBaseData.length;
-			TarArchiveEntry postrmEntry = new TarArchiveEntry("postrm");
+			TarArchiveEntry postrmEntry = new TarArchiveEntry(POSTRM);
 			postrmEntry.setSize(size);
 			postrmEntry.setMode(0755);
 			tar.putArchiveEntry(postrmEntry);
