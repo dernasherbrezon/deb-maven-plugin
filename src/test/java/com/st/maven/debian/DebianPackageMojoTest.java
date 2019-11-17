@@ -120,7 +120,7 @@ public class DebianPackageMojoTest {
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
 		mm.execute();
 	}
-	
+
 	@Test(expected = MojoExecutionException.class)
 	public void testInvalidDeveloper2() throws Exception {
 		Developer dev = createDeveloper();
@@ -130,7 +130,7 @@ public class DebianPackageMojoTest {
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
 		mm.execute();
 	}
-	
+
 	@Test(expected = MojoExecutionException.class)
 	public void testInvalidDeveloper3() throws Exception {
 		Developer dev = createDeveloper();
@@ -170,7 +170,7 @@ public class DebianPackageMojoTest {
 		dev.setEmail("test@example.com");
 		return dev;
 	}
-	
+
 	private MavenProject loadSuccessProject() throws Exception {
 		File basedir = new File("src/test/resources/success");
 		MavenProject mavenProject = mrule.readMavenProject(basedir);
