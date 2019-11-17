@@ -14,15 +14,20 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Developer;
+import org.apache.maven.model.License;
 import org.apache.maven.plugin.Mojo;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.MojoRule;
 import org.apache.maven.project.MavenProject;
 import org.junit.Rule;
@@ -40,16 +45,137 @@ public class DebianPackageMojoTest {
 	@Rule
 	public TemporaryFolder folder = new TemporaryFolder();
 
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidPackageName() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setArtifactId("sample_project");
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidUser() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mrule.setVariableValueToObject(mm, "unixUserId", " ");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidInstallDir() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mrule.setVariableValueToObject(mm, "installDir", "opt/local/");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidYear() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setInceptionYear(null);
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidDescription() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setDescription(" ");
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testEmptyLicense() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setLicenses(Collections.emptyList());
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testUnknownLicense() throws Exception {
+		License license = new License();
+		license.setName(UUID.randomUUID().toString());
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setLicenses(Collections.singletonList(license));
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testMissingDeveloper() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setDevelopers(Collections.emptyList());
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidDeveloper() throws Exception {
+		Developer dev = createDeveloper();
+		dev.setName(" ");
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setDevelopers(Collections.singletonList(dev));
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+	
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidDeveloper2() throws Exception {
+		Developer dev = createDeveloper();
+		dev.setEmail(" ");
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setDevelopers(Collections.singletonList(dev));
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+	
+	@Test(expected = MojoExecutionException.class)
+	public void testInvalidDeveloper3() throws Exception {
+		Developer dev = createDeveloper();
+		dev.setEmail(UUID.randomUUID().toString());
+		MavenProject mavenProject = loadSuccessProject();
+		mavenProject.setDevelopers(Collections.singletonList(dev));
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+	}
+
+	@Test
+	public void testVersionFromPom() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		String version = UUID.randomUUID().toString();
+		mavenProject.setVersion(version);
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mrule.setVariableValueToObject(mm, "generateVersion", false);
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
+		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
+		assertDeb(new File("src/test/resources/expected/success"), artifact.getFile(), version);
+	}
+
 	@Test
 	public void testSuccess() throws Exception {
-		File basedir = new File("src/test/resources/success");
-		MavenProject mavenProject = mrule.readMavenProject(basedir);
-		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
+		MavenProject mavenProject = loadSuccessProject();
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
 		mm.execute();
 		assertEquals(1, mavenProject.getAttachedArtifacts().size());
 		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
 		assertDeb(new File("src/test/resources/expected/success"), artifact.getFile(), artifact.getClassifier());
+	}
+
+	private static Developer createDeveloper() {
+		Developer dev = new Developer();
+		dev.setName(UUID.randomUUID().toString());
+		dev.setEmail("test@example.com");
+		return dev;
+	}
+	
+	private MavenProject loadSuccessProject() throws Exception {
+		File basedir = new File("src/test/resources/success");
+		MavenProject mavenProject = mrule.readMavenProject(basedir);
+		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
+		return mavenProject;
 	}
 
 	private static void assertDeb(File expectedDirectory, File actualFile, String expectedVersion) throws Exception {

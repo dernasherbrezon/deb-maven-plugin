@@ -376,7 +376,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (sourceFile.isDirectory()) {
 			File[] subFiles = sourceFile.listFiles();
 			for (File curSubFile : subFiles) {
-				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName(), fileset.isFilter());
+				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName());
 				addRecursively(config, tar, curSubFileset);
 			}
 			return;
@@ -387,15 +387,9 @@ public class DebianPackageMojo extends AbstractMojo {
 				if (sourceFile.canExecute()) {
 					curEntry.setMode(040744);
 				}
-				if (fileset.isFilter()) {
-					byte[] bytes = processTemplate(freemarkerConfig, config, fileset.getSource());
-					curEntry.setSize(bytes.length);
-					tar.writeEntry(curEntry, bytes);
-				} else {
-					curEntry.setSize(sourceFile.length());
-					try (InputStream fis = new FileInputStream(sourceFile)) {
-						tar.writeEntry(curEntry, fis);
-					}
+				curEntry.setSize(sourceFile.length());
+				try (InputStream fis = new FileInputStream(sourceFile)) {
+					tar.writeEntry(curEntry, fis);
 				}
 			} catch (Exception e) {
 				throw new MojoExecutionException("unable to write", e);
