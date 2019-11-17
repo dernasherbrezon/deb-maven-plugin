@@ -192,15 +192,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setGroup(unixGroupId);
 		config.setUser(unixUserId);
 		config.setJavaServiceWrapper(javaServiceWrapper);
-		String version;
-		if (generateVersion != null && generateVersion) {
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-			sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-			version = sdf.format(new Date());
-		} else {
-			version = project.getVersion();
-		}
-		config.setVersion(version);
+		config.setVersion(setupVersion());
 		Developer dev = project.getDevelopers().get(0);
 		String maintainer = dev.getName() + " <" + dev.getEmail() + ">";
 		config.setMaintainer(maintainer);
@@ -233,6 +225,18 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
 		return config;
+	}
+
+	private String setupVersion() {
+		String version;
+		if (generateVersion != null && generateVersion) {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+			sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+			version = sdf.format(new Date());
+		} else {
+			version = project.getVersion();
+		}
+		return version;
 	}
 
 	private String composeInstallDir() {
