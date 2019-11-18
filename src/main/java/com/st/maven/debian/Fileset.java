@@ -2,8 +2,8 @@ package com.st.maven.debian;
 
 public class Fileset {
 
-	public String source;
-	public String target;
+	private String source;
+	private String target;
 	
 	public Fileset() {
 		//do nothing

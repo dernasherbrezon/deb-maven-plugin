@@ -46,6 +46,9 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import com.google.code.ar.ArEntry;
@@ -56,10 +59,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 
-/**
- * @goal package
- * @phase install
- */
+@Mojo(name = "package", defaultPhase = LifecyclePhase.INSTALL)
 public class DebianPackageMojo extends AbstractMojo {
 
 	private static final String POSTRM = "postrm";
@@ -67,74 +67,43 @@ public class DebianPackageMojo extends AbstractMojo {
 	private static final String POSTINST = "postinst";
 	private static final String PREINST = "preinst";
 
-	/**
-	 * The maven project.
-	 * 
-	 * @parameter property="project"
-	 * @readonly
-	 */
+	@Parameter(defaultValue = "${project}", readonly = true)
 	private MavenProject project;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private Map<Object, Object> osDependencies;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String installDir;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private List<Fileset> fileSets;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String section;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String arch;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String priority;
 
-	/**
-	 * @parameter
-	 * @required
-	 */
+	@Parameter(required = true)
 	private String unixUserId;
 
-	/**
-	 * @parameter
-	 * @required
-	 */
+	@Parameter(required = true)
 	private String unixGroupId;
 
-	/**
-	 * @parameter default-value=true;
-	 */
+	@Parameter(defaultValue = "true")
 	private Boolean javaServiceWrapper;
 
-	/**
-	 * @parameter default-value=true;
-	 */
+	@Parameter(defaultValue = "true")
 	private boolean attachArtifact;
 
-	/**
-	 * @parameter default-value=true;
-	 */
+	@Parameter(defaultValue = "true")
 	private Boolean generateVersion;
 
-	/**
-	 * @parameter default-value="${project.basedir}/src/main/deb";
-	 */
+	@Parameter(defaultValue = "${project.basedir}/src/main/deb")
 	private String debBaseDir;
 
 	private static final Pattern EMAIL = Pattern
