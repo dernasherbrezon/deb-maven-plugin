@@ -243,6 +243,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (installDir != null && !installDir.startsWith("/")) {
 			throw new MojoExecutionException("installDir must be absolute");
 		}
+		if (fileSets == null || fileSets.isEmpty()) {
+			throw new MojoExecutionException("fileSets cannot be empty");
+		}
 		File debDir = new File(debBaseDir);
 		if (!debDir.exists()) {
 			throw new MojoExecutionException(".deb base directory doesnt exist: " + debBaseDir);
@@ -311,20 +314,17 @@ public class DebianPackageMojo extends AbstractMojo {
 			setupCopyright(config, tar);
 			// make path relative
 			String packageBaseDir = config.getInstallDir().substring(1) + "/";
-			if (fileSets != null && !fileSets.isEmpty()) {
-				Collections.sort(fileSets, MappingPathComparator.INSTANCE);
-				for (Fileset curPath : fileSets) {
-					// relative path is relative to the installDir
-					if (curPath.getTarget().charAt(0) != '/') {
-						curPath.setTarget(packageBaseDir + curPath.getTarget());
-					} else {
-						// make absolute path relative for the tar archive
-						curPath.setTarget(curPath.getTarget().substring(1));
-					}
-					addRecursively(config, tar, curPath);
+			Collections.sort(fileSets, MappingPathComparator.INSTANCE);
+			for (Fileset curPath : fileSets) {
+				// relative path is relative to the installDir
+				if (curPath.getTarget().charAt(0) != '/') {
+					curPath.setTarget(packageBaseDir + curPath.getTarget());
+				} else {
+					// make absolute path relative for the tar archive
+					curPath.setTarget(curPath.getTarget().substring(1));
 				}
+				addRecursively(config, tar, curPath);
 			}
-
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
 		}

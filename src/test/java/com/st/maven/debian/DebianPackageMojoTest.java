@@ -46,6 +46,14 @@ public class DebianPackageMojoTest {
 	public TemporaryFolder folder = new TemporaryFolder();
 
 	@Test(expected = MojoExecutionException.class)
+	public void testEmptyFilesets() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mrule.setVariableValueToObject(mm, "fileSets", Collections.emptyList());
+		mm.execute();
+	}
+	
+	@Test(expected = MojoExecutionException.class)
 	public void testInvalidPackageName() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
 		mavenProject.setArtifactId("sample_project");

@@ -57,6 +57,7 @@
 					<unixGroupId>pi</unixGroupId>
 					<arch>armhf</arch>
 					<section>embedded</section>
+					<priority>standard</priority>
 					<installDir>/opt/local/</installDir>
 					<osDependencies>
 						<r2cloud-ui>>=1513613469</r2cloud-ui>
