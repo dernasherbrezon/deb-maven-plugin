@@ -1,0 +1,8 @@
+#!/bin/bash -e
+if [ -x "/etc/init.d/sample-minimum" ]; then
+        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+                invoke-rc.d sample-minimum stop || true
+        else
+                /etc/init.d/sample-minimum stop || true
+        fi
+fi

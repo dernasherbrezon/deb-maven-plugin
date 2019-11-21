@@ -1,0 +1,15 @@
+#!/bin/bash -e
+
+case "$1" in
+        configure)
+        chown -R pi:pi "/home/pi/sample-minimum"
+;;
+esac
+if [ -x "/etc/init.d/sample-minimum" ]; then
+        update-rc.d sample-minimum defaults >/dev/null
+        if [ -x "`which invoke-rc.d 2>/dev/null`" ]; then
+                invoke-rc.d sample-minimum start || true
+        else
+                /etc/init.d/sample-minimum start || true
+        fi
+fi

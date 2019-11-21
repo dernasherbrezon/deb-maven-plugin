@@ -163,6 +163,18 @@ public class DebianPackageMojoTest {
 	}
 
 	@Test
+	public void testMinimum() throws Exception {
+		File basedir = new File("src/test/resources/minimum");
+		MavenProject mavenProject = mrule.readMavenProject(basedir);
+		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
+		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
+		assertDeb(new File("src/test/resources/expected/minimum"), artifact.getFile(), artifact.getClassifier());
+	}
+	
+	@Test
 	public void testSuccess() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");

@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: sample-minimum
+Upstream-Contact: Andrey Rodionov <info@r2cloud.ru>
+
+Files: *
+Copyright: 2014, Andrey Rodionov
+License: Apache-2.0
+ On Debian and Ubuntu systems, the complete text of the GNU General Public
+ License can be found in `/usr/share/common-licenses/Apache-2.0'
