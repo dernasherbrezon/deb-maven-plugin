@@ -6,8 +6,6 @@ maven plugin for .deb packaging. Control file generated from pom.xml. Required f
 * name
 * developers. At least 1 developer with valid email and name. This email will be used for ```maintainer``` section.
 
-version for .deb artifact will be constructed based on current time. Pattern ```yyyyMMddHHmmss```.
-
 # Custom installation scripts
 
 .deb file supports installation scripts. See <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html" target="blank">manual</a>. Plugin supports these scripts as well. They should be placed into ```./src/main/deb/```. Supported scripts:
@@ -69,6 +67,11 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <td></td>
     <td>true/false. Attach artifact to project</td>
     </tr>
+    <tr>
+    <td>generateVersion</td>
+    <td></td>
+    <td>true/false. Default true. Auto generate .deb version from current time according to the pattern ```yyyyMMddHHmmss```. If false - version will be taken from the project's version</td>
+    </tr>
   </tbody>
 </table>
 
@@ -93,7 +96,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     
 <tr>
     <td>target</td>
-    <td>target file or directory in result .deb file. Please note that in .deb file absolute paths start without "/"</td>
+    <td>target file or directory in result .deb file. Absolute paths will be placed in the corresponding absolute paths on the filesystem. Relative paths will be placed relative to the "installDir" parameter</td>
     </tr>    
     
   </tbody>
