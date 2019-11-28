@@ -357,7 +357,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (sourceFile.isFile()) {
 			TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
 			if (sourceFile.canExecute()) {
-				curEntry.setMode(040744);
+				curEntry.setMode(040755);
 			}
 			curEntry.setSize(sourceFile.length());
 			try (InputStream fis = new FileInputStream(sourceFile)) {
