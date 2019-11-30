@@ -14,8 +14,10 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
@@ -52,7 +54,20 @@ public class DebianPackageMojoTest {
 		mrule.setVariableValueToObject(mm, "fileSets", Collections.emptyList());
 		mm.execute();
 	}
-	
+
+	@SuppressWarnings({ "unchecked" })
+	@Test(expected = MojoExecutionException.class)
+	public void testDuplicateFilesets() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		List<Fileset> fileSets = (List<Fileset>) mrule.getVariablesAndValuesFromObject(mm).get("fileSets");
+		List<Fileset> duplicated = new ArrayList<>(fileSets.size() * 2);
+		duplicated.addAll(fileSets);
+		duplicated.addAll(copy(fileSets));
+		mrule.setVariableValueToObject(mm, "fileSets", duplicated);
+		mm.execute();
+	}
+
 	@Test(expected = MojoExecutionException.class)
 	public void testInvalidPackageName() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
@@ -173,7 +188,7 @@ public class DebianPackageMojoTest {
 		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
 		assertDeb(new File("src/test/resources/expected/minimum"), artifact.getFile(), artifact.getClassifier());
 	}
-	
+
 	@Test
 	public void testSuccess() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
@@ -290,6 +305,15 @@ public class DebianPackageMojoTest {
 			// no more lines in the actual file
 			assertNull(actualBuf.readLine());
 		}
+	}
+	
+	private static List<Fileset> copy(List<Fileset> src) {
+		List<Fileset> result = new ArrayList<>();
+		for( Fileset cur : src ) {
+			Fileset rs = new Fileset(cur.getSource(), cur.getTarget());
+			result.add(rs);
+		}
+		return result;
 	}
 
 }
