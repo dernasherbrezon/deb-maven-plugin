@@ -1,0 +1,18 @@
+#!/bin/bash -e
+if [ "$1" = "purge" ] ; then
+        update-rc.d sample-minimum remove >/dev/null || true
+fi
+
+case "$1" in
+        purge|remove)
+                if [ -d "/home/pi/sample-minimum" ]; then
+                    rm -R "/home/pi/sample-minimum"
+                fi
+        ;;
+        upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+        *)
+                echo "$0 called with unknown argument \`$1'" >&2
+                exit 1
+        ;;
+esac

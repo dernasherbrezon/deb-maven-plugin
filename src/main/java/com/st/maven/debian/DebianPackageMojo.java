@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -42,10 +43,12 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import com.google.code.ar.ArEntry;
@@ -56,77 +59,58 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 
-/**
- * @goal package
- * @phase install
- */
+@Mojo(name = "package", defaultPhase = LifecyclePhase.INSTALL)
 public class DebianPackageMojo extends AbstractMojo {
 
-	/**
-	 * The maven project.
-	 * 
-	 * @parameter property="project"
-	 * @readonly
-	 */
+	private static final String POSTRM = "postrm";
+	private static final String PRERM = "prerm";
+	private static final String POSTINST = "postinst";
+	private static final String PREINST = "preinst";
+
+	@Parameter(defaultValue = "${project}", readonly = true)
 	private MavenProject project;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private Map<Object, Object> osDependencies;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String installDir;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private List<Fileset> fileSets;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String section;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String arch;
 
-	/**
-	 * @parameter
-	 */
+	@Parameter
 	private String priority;
 
-	/**
-	 * @parameter
-	 * @required
-	 */
+	@Parameter(required = true)
 	private String unixUserId;
 
-	/**
-	 * @parameter
-	 * @required
-	 */
+	@Parameter(required = true)
 	private String unixGroupId;
 
-	/**
-	 * @parameter default-value=true;
-	 */
+	@Parameter(defaultValue = "true")
 	private Boolean javaServiceWrapper;
 
-	/**
-	 * @parameter default-value=true;
-	 */
-	private Boolean attachArtifact;
+	@Parameter(defaultValue = "true")
+	private boolean attachArtifact;
 
-	private final static String BASE_DIR = "./src/main/deb";
-	private final static Pattern email = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
-	private Configuration freemarkerConfig = new Configuration();
-	private Set<String> dirsAdded = new HashSet<String>();
-	private Set<String> ignore = new HashSet<String>();
+	@Parameter(defaultValue = "true")
+	private Boolean generateVersion;
+
+	@Parameter(defaultValue = "${project.basedir}/src/main/deb")
+	private String debBaseDir;
+
+	private static final Pattern EMAIL = Pattern
+			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
+	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
+	private final Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
+	private final Set<String> ignore = new HashSet<>();
 
 	@Override
 	public void execute() throws MojoExecutionException {
@@ -139,15 +123,45 @@ public class DebianPackageMojo extends AbstractMojo {
 		freemarkerConfig.setClassForTemplateLoading(DebianPackageMojo.class, "/");
 		freemarkerConfig.setTimeZone(TimeZone.getTimeZone("GMT"));
 
+		Config config = setupConfig();
+
+		File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
+
+		// sometimes ./target/ directory might not exist
+		// for example with turned off jar/install/deploy plugins
+		if (!debFile.getParentFile().exists() && !debFile.getParentFile().mkdirs()) {
+			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
+		}
+		getLog().info("Building deb: " + debFile.getAbsolutePath());
+		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
+			aros.putNextEntry(createEntry("debian-binary"));
+			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
+			aros.closeEntry();
+			aros.putNextEntry(createEntry("control.tar.gz"));
+			fillControlTar(config, aros);
+			aros.closeEntry();
+			aros.putNextEntry(createEntry("data.tar.gz"));
+			fillDataTar(config, aros);
+			aros.closeEntry();
+			if (attachArtifact) {
+				VersionableAttachedArtifact artifact = new VersionableAttachedArtifact(project.getArtifact(), "deb", config.getVersion());
+				artifact.setFile(debFile);
+				artifact.setResolved(true);
+				project.addAttachedArtifact(artifact);
+			}
+		} catch (Exception e) {
+			throw new MojoExecutionException("unable to create .deb file", e);
+		}
+	}
+
+	private Config setupConfig() {
 		Config config = new Config();
 		config.setArtifactId(project.getArtifactId());
 		config.setDescription(project.getDescription());
 		config.setGroup(unixGroupId);
 		config.setUser(unixUserId);
 		config.setJavaServiceWrapper(javaServiceWrapper);
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-		config.setVersion(sdf.format(new Date()));
+		config.setVersion(setupVersion());
 		Developer dev = project.getDevelopers().get(0);
 		String maintainer = dev.getName() + " <" + dev.getEmail() + ">";
 		config.setMaintainer(maintainer);
@@ -173,44 +187,25 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (project.getScm() != null && project.getScm().getUrl() != null) {
 			config.setSourceUrl(project.getScm().getUrl());
 		}
-		if (project.getOrganization() != null  && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
+		if (project.getOrganization() != null && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
 			config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
 		} else {
 			config.setCopyright(project.getInceptionYear() + ", " + dev.getName());
 		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
+		return config;
+	}
 
-		ArFileOutputStream aros = null;
-		try {
-			File debFile = new File(project.getBuild().getDirectory() + File.separator + project.getArtifactId() + "-" + config.getVersion() + ".deb");
-			getLog().info("Building deb: " + debFile.getAbsolutePath());
-			aros = new ArFileOutputStream(debFile.getAbsolutePath());
-			aros.putNextEntry(createEntry("debian-binary"));
-			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
-			aros.closeEntry();
-			aros.putNextEntry(createEntry("control.tar.gz"));
-			fillControlTar(config, aros);
-			aros.closeEntry();
-			aros.putNextEntry(createEntry("data.tar.gz"));
-			fillDataTar(config, aros);
-			aros.closeEntry();
-			if (attachArtifact) {
-				VersionableAttachedArtifact artifact = new VersionableAttachedArtifact(project.getArtifact(), "deb", config.getVersion());
-				artifact.setFile(debFile);
-				artifact.setResolved(true);
-				project.addAttachedArtifact(artifact);
-			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to create .deb file", e);
-		} finally {
-			if (aros != null) {
-				try {
-					aros.close();
-				} catch (IOException e) {
-					throw new MojoExecutionException("unable to close .deb file", e);
-				}
-			}
+	private String setupVersion() {
+		String version;
+		if (generateVersion != null && generateVersion) {
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+			sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+			version = sdf.format(new Date());
+		} else {
+			version = project.getVersion();
 		}
+		return version;
 	}
 
 	private String composeInstallDir() {
@@ -229,13 +224,16 @@ public class DebianPackageMojo extends AbstractMojo {
 			osDependencies.put("service-wrapper", null);
 		}
 		ignore.add(".svn");
-		ignore.add("preinst");
-		ignore.add("postinst");
-		ignore.add("prerm");
-		ignore.add("postrm");
+		ignore.add(PREINST);
+		ignore.add(POSTINST);
+		ignore.add(PRERM);
+		ignore.add(POSTRM);
 	}
 
 	private void validate() throws MojoExecutionException {
+		if (!PACKAGE_NAME.matcher(project.getArtifactId()).matches()) {
+			throw new MojoExecutionException("invalid package name: " + project.getArtifactId() + " supported: " + PACKAGE_NAME.pattern());
+		}
 		if (unixUserId == null || unixUserId.trim().length() == 0) {
 			throw new MojoExecutionException("unixUserId should be specified");
 		}
@@ -245,25 +243,47 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (installDir != null && !installDir.startsWith("/")) {
 			throw new MojoExecutionException("installDir must be absolute");
 		}
-		File debDir = new File(BASE_DIR);
+		if (fileSets == null || fileSets.isEmpty()) {
+			throw new MojoExecutionException("fileSets cannot be empty");
+		}
+		File debDir = new File(debBaseDir);
 		if (!debDir.exists()) {
-			throw new MojoExecutionException(".deb base directory doesnt exist: " + BASE_DIR);
+			throw new MojoExecutionException(".deb base directory doesnt exist: " + debBaseDir);
 		}
-		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
-			throw new MojoExecutionException("project description is mandatory");
-		}
-		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
-			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
-		}
+		validateDescription();
 		if (project.getInceptionYear() == null) {
 			throw new MojoExecutionException("inceptionYear is required for copyright file");
 		}
+		validateLicense();
+		validateDeveloper();
+	}
+
+	private void validateDescription() throws MojoExecutionException {
+		if (project.getDescription() == null || project.getDescription().trim().length() == 0) {
+			throw new MojoExecutionException("project description is mandatory");
+		}
+		// lintian considers these as ERROR
+		if (project.getDescription().equals(project.getArtifactId())) {
+			getLog().warn("description-is-pkg-name: " + project.getDescription());
+		}
+		if (project.getDescription().toLowerCase(Locale.UK).startsWith(project.getArtifactId().toLowerCase(Locale.UK))) {
+			getLog().warn("description-starts-with-package-name: " + project.getDescription());
+		}
+	}
+
+	private void validateLicense() throws MojoExecutionException {
 		if (project.getLicenses() == null || project.getLicenses().isEmpty()) {
 			throw new MojoExecutionException("licenses are required for copyright file. At least one should be specified");
 		}
 		LicenseName licenseName = LicenseName.valueOfShortName(project.getLicenses().get(0).getName());
 		if (licenseName == null) {
 			throw new MojoExecutionException("unsupported license name. Valid values are: " + LicenseName.getAllShortNames());
+		}
+	}
+
+	private void validateDeveloper() throws MojoExecutionException {
+		if (project.getDevelopers() == null || project.getDevelopers().isEmpty()) {
+			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
 		}
 		Developer dev = project.getDevelopers().get(0);
 		if (dev == null) {
@@ -275,166 +295,119 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (dev.getEmail() == null || dev.getEmail().trim().length() == 0) {
 			throw new MojoExecutionException("project maintainer email is mandatory. Please specify valid developer email");
 		}
-		Matcher m = email.matcher(dev.getEmail());
+		Matcher m = EMAIL.matcher(dev.getEmail());
 		if (!m.matches()) {
 			throw new MojoExecutionException("invalid project maintainer email: " + dev.getEmail());
 		}
 	}
 
 	private void fillDataTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStream tar = null;
-		try {
-			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
+		try (TarArchiveOutputStreamExt tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)))) {
 			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 			if (Boolean.TRUE.equals(javaServiceWrapper)) {
 				byte[] daemonData = processTemplate(freemarkerConfig, config, "daemon.ftl");
 				TarArchiveEntry initScript = new TarArchiveEntry("etc/init.d/" + project.getArtifactId());
 				initScript.setSize(daemonData.length);
 				initScript.setMode(040755);
-				tar.putArchiveEntry(initScript);
-				tar.write(daemonData);
-				tar.closeArchiveEntry();
+				tar.writeEntry(initScript, daemonData);
 			}
 			setupCopyright(config, tar);
 			// make path relative
 			String packageBaseDir = config.getInstallDir().substring(1) + "/";
-			if (fileSets != null && !fileSets.isEmpty()) {
-				writeDirectory(tar, packageBaseDir);
-
-				Collections.sort(fileSets, MappingPathComparator.INSTANCE);
-				for (Fileset curPath : fileSets) {
+			Collections.sort(fileSets, MappingPathComparator.INSTANCE);
+			for (Fileset curPath : fileSets) {
+				// relative path is relative to the installDir
+				if (curPath.getTarget().charAt(0) != '/') {
 					curPath.setTarget(packageBaseDir + curPath.getTarget());
-					addRecursively(config, tar, curPath);
+				} else {
+					// make absolute path relative for the tar archive
+					curPath.setTarget(curPath.getTarget().substring(1));
 				}
+				addRecursively(config, tar, curPath);
 			}
-
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
-		} finally {
-			IOUtils.closeQuietly(tar);
 		}
 	}
 
-	private void setupCopyright(Config config, TarArchiveOutputStream tar) throws TemplateException, IOException, MojoExecutionException {
+	private void setupCopyright(Config config, TarArchiveOutputStreamExt tar) throws TemplateException, IOException {
 		byte[] data = processTemplate(freemarkerConfig, config, "copyright.ftl");
 		long size = data.length;
-		String packageBaseDir = "usr/share/doc/" + project.getArtifactId() + "/";
-		writeDirectory(tar, packageBaseDir);
-		TarArchiveEntry copyrightEntry = new TarArchiveEntry(packageBaseDir + "copyright");
+		TarArchiveEntry copyrightEntry = new TarArchiveEntry("usr/share/doc/" + project.getArtifactId() + "/copyright");
 		copyrightEntry.setSize(size);
 		copyrightEntry.setMode(040644);
-		tar.putArchiveEntry(copyrightEntry);
-		tar.write(data);
-		tar.closeArchiveEntry();
+		tar.writeEntry(copyrightEntry, data);
 	}
 
-	private void addRecursively(Config config, TarArchiveOutputStream tar, Fileset fileset) throws MojoExecutionException {
+	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws TemplateException, IOException {
 		File sourceFile = new File(fileset.getSource());
 		String targetFilename = fileset.getTarget();
 		// skip well-known ignore directories
 		if (ignore.contains(sourceFile.getName()) || sourceFile.getName().endsWith(".rrd") || sourceFile.getName().endsWith(".log")) {
 			return;
 		}
-		FileInputStream fis = null;
-		try {
-			if (!sourceFile.isDirectory()) {
-				TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
-				if (sourceFile.canExecute()) {
-					curEntry.setMode(040744);
-				}
-				if (fileset.isFilter()) {
-					byte[] bytes = processTemplate(freemarkerConfig, config, fileset.getSource());
-					curEntry.setSize(bytes.length);
-					tar.putArchiveEntry(curEntry);
-					tar.write(bytes);
-				} else {
-					curEntry.setSize(sourceFile.length());
-					tar.putArchiveEntry(curEntry);
-					fis = new FileInputStream(sourceFile);
-					IOUtils.copy(fis, tar);
-				}
-				tar.closeArchiveEntry();
-			} else if (sourceFile.isDirectory()) {
-				targetFilename += "/";
-				if (!dirsAdded.contains(targetFilename)) {
-					dirsAdded.add(targetFilename);
-					writeDirectory(tar, targetFilename);
-				}
-			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to write", e);
-		} finally {
-			IOUtils.closeQuietly(fis);
-		}
-
 		if (sourceFile.isDirectory()) {
 			File[] subFiles = sourceFile.listFiles();
 			for (File curSubFile : subFiles) {
-				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName(), fileset.isFilter());
+				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName());
 				addRecursively(config, tar, curSubFileset);
 			}
+			return;
 		}
-	}
-
-	private static void writeDirectory(TarArchiveOutputStream tar, String dirName) throws MojoExecutionException {
-		try {
-			if (!dirName.endsWith("/")) {
-				dirName = dirName + "/";
+		if (sourceFile.isFile()) {
+			TarArchiveEntry curEntry = new TarArchiveEntry(targetFilename);
+			if (sourceFile.canExecute()) {
+				curEntry.setMode(040755);
 			}
-			TarArchiveEntry curEntry = new TarArchiveEntry(dirName);
-			tar.putArchiveEntry(curEntry);
-			tar.closeArchiveEntry();
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to add directory: " + dirName, e);
+			curEntry.setSize(sourceFile.length());
+			try (InputStream fis = new FileInputStream(sourceFile)) {
+				tar.writeEntry(curEntry, fis);
+			}
 		}
+
 	}
 
 	private void fillControlTar(Config config, ArFileOutputStream output) throws MojoExecutionException {
-		TarArchiveOutputStream tar = null;
-		try {
-			tar = new TarArchiveOutputStream(new GZIPOutputStream(new ArWrapper(output)));
+		try (TarArchiveOutputStreamExt tar = new TarArchiveOutputStreamExt(new GZIPOutputStream(new ArWrapper(output)))) {
 			tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
-			TarArchiveEntry rootDir = new TarArchiveEntry("./");
-			tar.putArchiveEntry(rootDir);
-			tar.closeArchiveEntry();
 
 			byte[] controlData = processTemplate(freemarkerConfig, config, "control.ftl");
-			TarArchiveEntry controlEntry = new TarArchiveEntry("./control");
+			TarArchiveEntry controlEntry = new TarArchiveEntry("control");
 			controlEntry.setSize(controlData.length);
 			tar.putArchiveEntry(controlEntry);
 			tar.write(controlData);
 			tar.closeArchiveEntry();
 
-			byte[] preinstBaseData = processTemplate("preinst", freemarkerConfig, config, combine("preinst.ftl", BASE_DIR + File.separator + "preinst", false));
+			byte[] preinstBaseData = processTemplate(PREINST, freemarkerConfig, config, combine("preinst.ftl", debBaseDir + File.separator + PREINST, false));
 			long size = preinstBaseData.length;
-			TarArchiveEntry preinstEntry = new TarArchiveEntry("./preinst");
+			TarArchiveEntry preinstEntry = new TarArchiveEntry(PREINST);
 			preinstEntry.setSize(size);
 			preinstEntry.setMode(0755);
 			tar.putArchiveEntry(preinstEntry);
 			tar.write(preinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postinstBaseData = processTemplate("postinst", freemarkerConfig, config, combine("postinst.ftl", BASE_DIR + File.separator + "postinst", true));
+			byte[] postinstBaseData = processTemplate(POSTINST, freemarkerConfig, config, combine("postinst.ftl", debBaseDir + File.separator + POSTINST, true));
 			size = postinstBaseData.length;
-			TarArchiveEntry postinstEntry = new TarArchiveEntry("./postinst");
+			TarArchiveEntry postinstEntry = new TarArchiveEntry(POSTINST);
 			postinstEntry.setSize(size);
 			postinstEntry.setMode(0755);
 			tar.putArchiveEntry(postinstEntry);
 			tar.write(postinstBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] prermBaseData = processTemplate("prerm", freemarkerConfig, config, combine("prerm.ftl", BASE_DIR + File.separator + "prerm", false));
+			byte[] prermBaseData = processTemplate(PRERM, freemarkerConfig, config, combine("prerm.ftl", debBaseDir + File.separator + PRERM, false));
 			size = prermBaseData.length;
-			TarArchiveEntry prermEntry = new TarArchiveEntry("./prerm");
+			TarArchiveEntry prermEntry = new TarArchiveEntry(PRERM);
 			prermEntry.setSize(size);
 			prermEntry.setMode(0755);
 			tar.putArchiveEntry(prermEntry);
 			tar.write(prermBaseData);
 			tar.closeArchiveEntry();
 
-			byte[] postrmBaseData = processTemplate("postrm", freemarkerConfig, config, combine("postrm.ftl", BASE_DIR + File.separator + "postrm", false));
+			byte[] postrmBaseData = processTemplate(POSTRM, freemarkerConfig, config, combine("postrm.ftl", debBaseDir + File.separator + POSTRM, false));
 			size = postrmBaseData.length;
-			TarArchiveEntry postrmEntry = new TarArchiveEntry("./postrm");
+			TarArchiveEntry postrmEntry = new TarArchiveEntry(POSTRM);
 			postrmEntry.setSize(size);
 			postrmEntry.setMode(0755);
 			tar.putArchiveEntry(postrmEntry);
@@ -443,18 +416,10 @@ public class DebianPackageMojo extends AbstractMojo {
 
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create control tar", e);
-		} finally {
-			if (tar != null) {
-				try {
-					tar.close();
-				} catch (IOException e) {
-					getLog().error("unable to finish tar", e);
-				}
-			}
 		}
 	}
 
-	private static String combine(String classpathResource, String file, boolean inverse) throws MojoExecutionException {
+	private static String combine(String classpathResource, String file, boolean inverse) throws IOException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("#!/bin/bash -e\n");
 		if (inverse) {
@@ -467,36 +432,25 @@ public class DebianPackageMojo extends AbstractMojo {
 		return builder.toString();
 	}
 
-	private static void appendUserScript(String file, StringBuilder builder) throws MojoExecutionException {
-		BufferedReader r = null;
-		try {
-			File f = new File(file);
+	private static void appendUserScript(String file, StringBuilder builder) throws IOException {
+		File f = new File(file);
+		if (!f.exists()) {
+			return;
+		}
+		try (BufferedReader r = new BufferedReader(new FileReader(file))) {
 			String curLine = null;
-			if (f.exists()) {
-				r = new BufferedReader(new FileReader(file));
-				while ((curLine = r.readLine()) != null) {
-					builder.append(curLine).append('\n');
-				}
+			while ((curLine = r.readLine()) != null) {
+				builder.append(curLine).append('\n');
 			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to combine data", e);
-		} finally {
-			IOUtils.closeQuietly(r);
 		}
 	}
 
-	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws MojoExecutionException {
-		BufferedReader isr = null;
-		try {
-			isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), "UTF-8"));
+	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws IOException {
+		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
 			String curLine = null;
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
-		} catch (Exception e) {
-			throw new MojoExecutionException("unable to combine data", e);
-		} finally {
-			IOUtils.closeQuietly(isr);
 		}
 	}
 

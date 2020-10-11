@@ -2,27 +2,17 @@ package com.st.maven.debian;
 
 public class Fileset {
 
-	public String source;
-	public String target;
-	public boolean filter;
+	private String source;
+	private String target;
 	
 	public Fileset() {
 		//do nothing
 	}
 
-	public Fileset(String source, String target, boolean filter) {
+	public Fileset(String source, String target) {
 		super();
 		this.source = source;
 		this.target = target;
-		this.filter = filter;
-	}
-
-	public boolean isFilter() {
-		return filter;
-	}
-
-	public void setFilter(boolean filter) {
-		this.filter = filter;
 	}
 
 	public String getSource() {

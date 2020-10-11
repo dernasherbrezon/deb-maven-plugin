@@ -1,12 +1,10 @@
-# deb-maven-plugin
+# deb-maven-plugin [![Build Status](https://travis-ci.org/dernasherbrezon/deb-maven-plugin.svg?branch=master)](https://travis-ci.org/dernasherbrezon/deb-maven-plugin) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.aerse.maven%3Adeb-maven-plugin&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.aerse.maven%3Adeb-maven-plugin)
 
 maven plugin for .deb packaging. Control file generated from pom.xml. Required fields:
 
 * description
 * name
 * developers. At least 1 developer with valid email and name. This email will be used for ```maintainer``` section.
-
-version for .deb artifact will be constructed based on current time. Pattern ```yyyyMMddHHmmss```.
 
 # Custom installation scripts
 
@@ -69,6 +67,11 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     <td></td>
     <td>true/false. Attach artifact to project</td>
     </tr>
+    <tr>
+    <td>generateVersion</td>
+    <td></td>
+    <td>true/false. Default true. Auto generate .deb version from current time according to the pattern ```yyyyMMddHHmmss```. If false - version will be taken from the project's version</td>
+    </tr>
   </tbody>
 </table>
 
@@ -93,12 +96,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
     
 <tr>
     <td>target</td>
-    <td>target file or directory in result .deb file. Please note that in .deb file absolute paths start without "/"</td>
-    </tr>    
-    
-<tr>
-    <td>filter</td>
-    <td>true/false. Apply filter rules. Please note that source should contain text files.</td>
+    <td>target file or directory in result .deb file. Absolute paths will be placed in the corresponding absolute paths on the filesystem. Relative paths will be placed relative to the "installDir" parameter</td>
     </tr>    
     
   </tbody>
@@ -110,7 +108,7 @@ version for .deb artifact will be constructed based on current time. Pattern ```
 <plugin>
 	<groupId>com.aerse.maven</groupId>
 	<artifactId>deb-maven-plugin</artifactId>
-	<version>1.0</version>
+	<version>1.9</version>
 	<executions>
 		<execution>
 			<id>package</id>
