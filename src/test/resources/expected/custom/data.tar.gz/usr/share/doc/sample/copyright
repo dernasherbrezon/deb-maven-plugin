@@ -1,0 +1,27 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: sample
+Upstream-Contact: Andrey Rodionov <info@r2cloud.ru>
+
+Files: *
+Copyright: 2021, example
+License: Apache-2.0
+
+ On Debian and Ubuntu systems, the complete text of the GNU General Public
+ License can be found in `/usr/share/common-licenses/Apache-2.0'
+
+Files: *.png
+Copyright: 2021, EyeCandy Project (ECP)
+License: LGPL-2.0
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ The full text of the GNU Library General Public License can be found in
+ 'https://www.gnu.org/licenses/lgpl-2.0.txt'.
