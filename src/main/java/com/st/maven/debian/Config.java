@@ -17,8 +17,17 @@ public class Config {
 	private String sourceUrl;
 	private String copyright;
 	private LicenseName licenseName;
+	private String customCopyRightFile;
 	private Boolean javaServiceWrapper;
-	
+
+	public String getCustomCopyRightFile() {
+		return customCopyRightFile;
+	}
+
+	public void setCustomCopyRightFile(String customCopyRightFile) {
+		this.customCopyRightFile = customCopyRightFile;
+	}
+
 	public Boolean getJavaServiceWrapper() {
 		return javaServiceWrapper;
 	}
