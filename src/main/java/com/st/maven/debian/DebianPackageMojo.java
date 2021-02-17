@@ -28,7 +28,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,7 +66,6 @@ public class DebianPackageMojo extends AbstractMojo {
 	private static final String PRERM = "prerm";
 	private static final String POSTINST = "postinst";
 	private static final String PREINST = "preinst";
-	private static final String COPYRIGHT = "copyright";
 
 	@Parameter(defaultValue = "${project}", readonly = true)
 	private MavenProject project;
