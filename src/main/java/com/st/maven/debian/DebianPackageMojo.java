@@ -138,7 +138,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
 		}
 		getLog().info("Building deb: " + debFile.getAbsolutePath());
-		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
+		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath())) {
 			aros.putNextEntry(createEntry("debian-binary"));
 			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
 			aros.closeEntry();
@@ -326,7 +326,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			setupCopyright(config, tar);
 			// make path relative
 			String packageBaseDir = config.getInstallDir().substring(1) + "/";
-			Collections.sort(fileSets, MappingPathComparator.INSTANCE);
+			fileSets.sort(MappingPathComparator.INSTANCE);
 			for (Fileset curPath : fileSets) {
 				// relative path is relative to the installDir
 				if (curPath.getTarget().charAt(0) != '/') {
@@ -335,7 +335,7 @@ public class DebianPackageMojo extends AbstractMojo {
 					// make absolute path relative for the tar archive
 					curPath.setTarget(curPath.getTarget().substring(1));
 				}
-				addRecursively(config, tar, curPath);
+				addRecursively(tar, curPath);
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
@@ -360,7 +360,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		tar.writeEntry(copyrightEntry, data);
 	}
 
-	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws TemplateException, IOException {
+	private void addRecursively(TarArchiveOutputStreamExt tar, Fileset fileset) throws IOException {
 		File sourceFile = new File(fileset.getSource());
 		String targetFilename = fileset.getTarget();
 		// skip well-known ignore directories
@@ -371,7 +371,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			File[] subFiles = sourceFile.listFiles();
 			for (File curSubFile : subFiles) {
 				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName());
-				addRecursively(config, tar, curSubFileset);
+				addRecursively(tar, curSubFileset);
 			}
 			return;
 		}
@@ -459,7 +459,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			return;
 		}
 		try (BufferedReader r = new BufferedReader(new FileReader(file))) {
-			String curLine = null;
+			String curLine;
 			while ((curLine = r.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
@@ -468,7 +468,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws IOException {
 		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
-			String curLine = null;
+			String curLine;
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
