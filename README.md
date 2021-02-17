@@ -70,7 +70,7 @@ maven plugin for .deb packaging. Control file generated from pom.xml. Required f
     <tr>
     <td>customCopyRightFile</td>
     <td></td>
-    <td>Optional. File containing custom copy right, Useful if your package contains files with several different licenses</td>
+    <td>Optional. File containing custom copyright, Useful if your package contains files with several different licenses</td>
     </tr>
     <tr>
     <td>generateVersion</td>
@@ -134,7 +134,7 @@ maven plugin for .deb packaging. Control file generated from pom.xml. Required f
 			<imagemagick></imagemagick>
 			<maven></maven>
 		</osDependencies>
-        <customCopyRightFile>${project.basedir}/src/main/resources/customText.txt</customCopyRightFile>
+		<customCopyRightFile>${project.basedir}/src/main/resources/customText.txt</customCopyRightFile>
 		<javaServiceWrapper>true</javaServiceWrapper>
 		<fileSets>
 			<fileSet>
