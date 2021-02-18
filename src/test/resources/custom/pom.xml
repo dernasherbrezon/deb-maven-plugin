@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.aerse.maven</groupId>
+	<artifactId>sample</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>Debian project for testing plugin</name>
+	<description>This projects contains all possible config options enabled</description>
+	<inceptionYear>2014</inceptionYear>
+	<organization>
+		<name>r2cloud</name>
+	</organization>
+
+	<developers>
+		<developer>
+			<email>info@r2cloud.ru</email>
+			<name>Andrey Rodionov</name>
+		</developer>
+	</developers>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.aerse.maven</groupId>
+				<artifactId>deb-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>package</id>
+						<phase>package</phase>
+						<goals>
+							<goal>package</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<customCopyRightFile>${project.basedir}/src/main/deb/resources/customCopyright.txt</customCopyRightFile>
+					<unixUserId>pi</unixUserId>
+					<unixGroupId>pi</unixGroupId>
+					<arch>armhf</arch>
+					<section>embedded</section>
+					<priority>standard</priority>
+					<installDir>/opt/local/</installDir>
+					<osDependencies>
+						<r2cloud-ui>>=1513613469</r2cloud-ui>
+					</osDependencies>
+					<javaServiceWrapper>true</javaServiceWrapper>
+					<attachArtifact>true</attachArtifact>
+					<fileSets>
+						<fileSet>
+							<source>${project.basedir}/src/main/deb/etc</source>
+							<target>/etc</target>
+						</fileSet>
+						<fileSet>
+							<source>${project.basedir}/src/main/deb/lib</source>
+							<target>/lib</target>
+						</fileSet>
+						<fileSet>
+							<source>${project.build.directory}/assembly-lib/lib</source>
+							<target>lib</target>
+						</fileSet>
+					</fileSets>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<licenses>
+		<license>
+			<name>Apache-2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
+
+</project>

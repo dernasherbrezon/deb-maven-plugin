@@ -26,8 +26,8 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,6 +106,9 @@ public class DebianPackageMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project.basedir}/src/main/deb")
 	private String debBaseDir;
 
+	@Parameter
+	private String customCopyRightFile;
+
 	private static final Pattern EMAIL = Pattern
 			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
@@ -133,7 +136,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			throw new MojoExecutionException("unable to create parent directory for the .deb at: " + debFile.getAbsolutePath());
 		}
 		getLog().info("Building deb: " + debFile.getAbsolutePath());
-		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath());) {
+		try (ArFileOutputStream aros = new ArFileOutputStream(debFile.getAbsolutePath())) {
 			aros.putNextEntry(createEntry("debian-binary"));
 			aros.write("2.0\n".getBytes(StandardCharsets.US_ASCII));
 			aros.closeEntry();
@@ -156,8 +159,8 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private Config setupConfig() {
 		Config config = new Config();
-		config.setArtifactId(project.getArtifactId());
-		config.setDescription(project.getDescription());
+		config.setArtifactId(project.getArtifactId().trim());
+		config.setDescription(project.getDescription().trim());
 		config.setGroup(unixGroupId);
 		config.setUser(unixUserId);
 		config.setJavaServiceWrapper(javaServiceWrapper);
@@ -169,31 +172,38 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setDescription(project.getDescription());
 		config.setDepends(formatDependencies(osDependencies));
 		config.setInstallDir(composeInstallDir());
-		if (section == null || section.trim().length() == 0) {
+		if (isNullOrBlank(section)) {
 			config.setSection("java");
 		} else {
 			config.setSection(section);
 		}
-		if (arch == null || arch.trim().length() == 0) {
+		if (isNullOrBlank(arch)) {
 			config.setArch("all");
 		} else {
-			config.setArch(arch);
+			config.setArch(arch.trim());
 		}
-		if (priority == null || priority.trim().length() == 0) {
+		if (isNullOrBlank(priority)) {
 			config.setPriority(Priority.STANDARD);
 		} else {
 			config.setPriority(Priority.valueOf(priority.toUpperCase(Locale.UK)));
 		}
-		if (project.getScm() != null && project.getScm().getUrl() != null) {
-			config.setSourceUrl(project.getScm().getUrl());
+		if (project.getScm() != null && !isNullOrBlank(project.getScm().getUrl())) {
+			config.setSourceUrl(project.getScm().getUrl().trim());
 		}
-		if (project.getOrganization() != null && project.getOrganization().getName() != null && project.getOrganization().getName().trim().length() > 0) {
-			config.setCopyright(project.getInceptionYear() + ", " + project.getOrganization().getName());
+		if (project.getOrganization() != null && !isNullOrBlank(project.getOrganization().getName())) {
+			config.setCopyright(project.getInceptionYear().trim() + ", " + project.getOrganization().getName().trim());
 		} else {
-			config.setCopyright(project.getInceptionYear() + ", " + dev.getName());
+			config.setCopyright(project.getInceptionYear().trim() + ", " + dev.getName().trim());
 		}
 		config.setLicenseName(LicenseName.valueOfShortName(project.getLicenses().get(0).getName()));
+		if (!isNullOrBlank(customCopyRightFile)) {
+			config.setCustomCopyRightFile(customCopyRightFile.trim());
+		}
 		return config;
+	}
+
+	private boolean isNullOrBlank(String string) {
+		return string == null || string.trim().isEmpty();
 	}
 
 	private String setupVersion() {
@@ -203,13 +213,13 @@ public class DebianPackageMojo extends AbstractMojo {
 			sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 			version = sdf.format(new Date());
 		} else {
-			version = project.getVersion();
+			version = project.getVersion().trim();
 		}
 		return version;
 	}
 
 	private String composeInstallDir() {
-		if (installDir != null && !installDir.trim().isEmpty()) {
+		if (!isNullOrBlank(installDir)) {
 			return installDir.endsWith("/") ? installDir + project.getArtifactId() : installDir + "/" + project.getArtifactId();
 		}
 		return "/home/" + unixUserId + "/" + project.getArtifactId();
@@ -234,7 +244,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (!PACKAGE_NAME.matcher(project.getArtifactId()).matches()) {
 			throw new MojoExecutionException("invalid package name: " + project.getArtifactId() + " supported: " + PACKAGE_NAME.pattern());
 		}
-		if (unixUserId == null || unixUserId.trim().length() == 0) {
+		if (isNullOrBlank(unixUserId)) {
 			throw new MojoExecutionException("unixUserId should be specified");
 		}
 		if (unixUserId.trim().length() > 8) {
@@ -289,10 +299,10 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (dev == null) {
 			throw new MojoExecutionException("project maintainer is mandatory. Please specify valid \"developers\" entry");
 		}
-		if (dev.getName() == null || dev.getName().trim().length() == 0) {
+		if (isNullOrBlank(dev.getName())) {
 			throw new MojoExecutionException("project maintainer name is mandatory. Please fill valid developer name");
 		}
-		if (dev.getEmail() == null || dev.getEmail().trim().length() == 0) {
+		if (isNullOrBlank(dev.getEmail())) {
 			throw new MojoExecutionException("project maintainer email is mandatory. Please specify valid developer email");
 		}
 		Matcher m = EMAIL.matcher(dev.getEmail());
@@ -314,7 +324,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			setupCopyright(config, tar);
 			// make path relative
 			String packageBaseDir = config.getInstallDir().substring(1) + "/";
-			Collections.sort(fileSets, MappingPathComparator.INSTANCE);
+			fileSets.sort(MappingPathComparator.INSTANCE);
 			for (Fileset curPath : fileSets) {
 				// relative path is relative to the installDir
 				if (curPath.getTarget().charAt(0) != '/') {
@@ -323,7 +333,7 @@ public class DebianPackageMojo extends AbstractMojo {
 					// make absolute path relative for the tar archive
 					curPath.setTarget(curPath.getTarget().substring(1));
 				}
-				addRecursively(config, tar, curPath);
+				addRecursively(tar, curPath);
 			}
 		} catch (Exception e) {
 			throw new MojoExecutionException("unable to create data tar", e);
@@ -331,7 +341,16 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private void setupCopyright(Config config, TarArchiveOutputStreamExt tar) throws TemplateException, IOException {
-		byte[] data = processTemplate(freemarkerConfig, config, "copyright.ftl");
+		byte[] data = null;
+		if (config.getCustomCopyRightFile() != null) {
+			File customCopyRightFile = new File(config.getCustomCopyRightFile());
+			if (customCopyRightFile.isFile()) {
+				data = Files.readAllBytes(customCopyRightFile.toPath());
+			}
+		}
+		if (data == null) {
+			data = processTemplate(freemarkerConfig, config, "copyright.ftl");
+		}
 		long size = data.length;
 		TarArchiveEntry copyrightEntry = new TarArchiveEntry("usr/share/doc/" + project.getArtifactId() + "/copyright");
 		copyrightEntry.setSize(size);
@@ -339,7 +358,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		tar.writeEntry(copyrightEntry, data);
 	}
 
-	private void addRecursively(Config config, TarArchiveOutputStreamExt tar, Fileset fileset) throws TemplateException, IOException {
+	private void addRecursively(TarArchiveOutputStreamExt tar, Fileset fileset) throws IOException {
 		File sourceFile = new File(fileset.getSource());
 		String targetFilename = fileset.getTarget();
 		// skip well-known ignore directories
@@ -350,7 +369,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			File[] subFiles = sourceFile.listFiles();
 			for (File curSubFile : subFiles) {
 				Fileset curSubFileset = new Fileset(fileset.getSource() + "/" + curSubFile.getName(), fileset.getTarget() + "/" + curSubFile.getName());
-				addRecursively(config, tar, curSubFileset);
+				addRecursively(tar, curSubFileset);
 			}
 			return;
 		}
@@ -438,7 +457,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			return;
 		}
 		try (BufferedReader r = new BufferedReader(new FileReader(file))) {
-			String curLine = null;
+			String curLine;
 			while ((curLine = r.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}
@@ -447,7 +466,7 @@ public class DebianPackageMojo extends AbstractMojo {
 
 	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws IOException {
 		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
-			String curLine = null;
+			String curLine;
 			while ((curLine = isr.readLine()) != null) {
 				builder.append(curLine).append('\n');
 			}

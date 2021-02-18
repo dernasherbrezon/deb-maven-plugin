@@ -199,6 +199,16 @@ public class DebianPackageMojoTest {
 		assertDeb(new File("src/test/resources/expected/success"), artifact.getFile(), artifact.getClassifier());
 	}
 
+	@Test
+	public void testCustom() throws Exception {
+		MavenProject mavenProject = loadCustomProject();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
+		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
+		assertDeb(new File("src/test/resources/expected/custom"), artifact.getFile(), artifact.getClassifier());
+	}
+
 	private static Developer createDeveloper() {
 		Developer dev = new Developer();
 		dev.setName(UUID.randomUUID().toString());
@@ -208,6 +218,13 @@ public class DebianPackageMojoTest {
 
 	private MavenProject loadSuccessProject() throws Exception {
 		File basedir = new File("src/test/resources/success");
+		MavenProject mavenProject = mrule.readMavenProject(basedir);
+		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
+		return mavenProject;
+	}
+
+	private MavenProject loadCustomProject() throws Exception {
+		File basedir = new File("src/test/resources/custom");
 		MavenProject mavenProject = mrule.readMavenProject(basedir);
 		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
 		return mavenProject;

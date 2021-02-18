@@ -1,0 +1,15 @@
+[Unit]
+Description=Sample Service
+Requires=nginx.service
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/sample/
+ExecStart=java -cp /home/pi/sample/lib/*:/usr/share/java/sample/* -Djava.library.path=/usr/lib/jni -Duser.timezone=UTC com.aerse.sample.SampleMain
+SuccessExitStatus=143
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target
