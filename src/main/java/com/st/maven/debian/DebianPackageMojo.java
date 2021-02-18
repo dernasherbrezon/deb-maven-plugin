@@ -343,9 +343,9 @@ public class DebianPackageMojo extends AbstractMojo {
 	private void setupCopyright(Config config, TarArchiveOutputStreamExt tar) throws TemplateException, IOException {
 		byte[] data = null;
 		if (config.getCustomCopyRightFile() != null) {
-			File customCopyRightFile = new File(config.getCustomCopyRightFile());
-			if (customCopyRightFile.isFile()) {
-				data = Files.readAllBytes(customCopyRightFile.toPath());
+			File copyRightFile = new File(config.getCustomCopyRightFile());
+			if (copyRightFile.isFile()) {
+				data = Files.readAllBytes(copyRightFile.toPath());
 			}
 		}
 		if (data == null) {
