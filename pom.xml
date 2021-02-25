@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.aerse.maven</groupId>
 	<artifactId>deb-maven-plugin</artifactId>
-	<version>1.14</version>
+	<version>1.15-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 	<name>.deb packages</name>
 	<description>Plugin to generate .deb packages</description>
@@ -256,7 +256,7 @@
 	<scm>
 		<url>https://github.com/dernasherbrezon/deb-maven-plugin</url>
 		<connection>scm:git:git@github.com/dernasherbrezon/deb-maven-plugin.git</connection>
-		<developerConnection>scm:git:git://github.com/dernasherbrezon/deb-maven-plugin.git</developerConnection>
+		<developerConnection>scm:git:git@github.com/dernasherbrezon/deb-maven-plugin.git</developerConnection>
 		<tag>deb-maven-plugin-1.14</tag>
 	</scm>
 
