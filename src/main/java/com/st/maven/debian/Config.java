@@ -16,9 +16,18 @@ public class Config {
 	private Priority priority;
 	private String sourceUrl;
 	private String copyright;
+	private String homepage;
 	private LicenseName licenseName;
 	private String customCopyRightFile;
 	private Boolean javaServiceWrapper;
+	
+	public String getHomepage() {
+		return homepage;
+	}
+	
+	public void setHomepage(String homepage) {
+		this.homepage = homepage;
+	}
 
 	public String getCustomCopyRightFile() {
 		return customCopyRightFile;

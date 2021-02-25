@@ -169,6 +169,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		String maintainer = dev.getName() + " <" + dev.getEmail() + ">";
 		config.setMaintainer(maintainer);
 		config.setName(project.getName());
+		config.setHomepage(project.getUrl());
 		config.setDescription(project.getDescription());
 		config.setDepends(formatDependencies(osDependencies));
 		config.setInstallDir(composeInstallDir());

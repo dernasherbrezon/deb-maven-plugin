@@ -10,6 +10,7 @@
 	<name>Debian project for testing plugin</name>
 	<description>This projects contains all possible config options enabled</description>
 	<inceptionYear>2014</inceptionYear>
+	<url>http://example.com</url>
 	<organization>
 		<name>r2cloud</name>
 	</organization>
