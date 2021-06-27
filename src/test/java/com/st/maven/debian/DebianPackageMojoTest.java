@@ -154,16 +154,6 @@ public class DebianPackageMojoTest {
 		mm.execute();
 	}
 
-	@Test(expected = MojoExecutionException.class)
-	public void testInvalidDeveloper3() throws Exception {
-		Developer dev = createDeveloper();
-		dev.setEmail(UUID.randomUUID().toString());
-		MavenProject mavenProject = loadSuccessProject();
-		mavenProject.setDevelopers(Collections.singletonList(dev));
-		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
-		mm.execute();
-	}
-
 	@Test
 	public void testVersionFromPom() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
