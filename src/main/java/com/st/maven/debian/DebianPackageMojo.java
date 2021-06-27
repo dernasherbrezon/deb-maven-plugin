@@ -37,7 +37,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
@@ -109,8 +108,6 @@ public class DebianPackageMojo extends AbstractMojo {
 	@Parameter
 	private String customCopyRightFile;
 
-	private static final Pattern EMAIL = Pattern
-			.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
 	private final Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
 	private final Set<String> ignore = new HashSet<>();
@@ -203,7 +200,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		return config;
 	}
 
-	private boolean isNullOrBlank(String string) {
+	private static boolean isNullOrBlank(String string) {
 		return string == null || string.trim().isEmpty();
 	}
 
@@ -305,10 +302,6 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		if (isNullOrBlank(dev.getEmail())) {
 			throw new MojoExecutionException("project maintainer email is mandatory. Please specify valid developer email");
-		}
-		Matcher m = EMAIL.matcher(dev.getEmail());
-		if (!m.matches()) {
-			throw new MojoExecutionException("invalid project maintainer email: " + dev.getEmail());
 		}
 	}
 
