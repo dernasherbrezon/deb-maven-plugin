@@ -1,4 +1,4 @@
-# deb-maven-plugin [![Build Status](https://travis-ci.com/dernasherbrezon/deb-maven-plugin.svg?branch=master)](https://travis-ci.com/dernasherbrezon/deb-maven-plugin) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dernasherbrezon_deb-maven-plugin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dernasherbrezon_deb-maven-plugin)
+# deb-maven-plugin [![.github/workflows/build.yml](https://github.com/dernasherbrezon/deb-maven-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/dernasherbrezon/deb-maven-plugin/actions/workflows/build.yml) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dernasherbrezon_deb-maven-plugin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dernasherbrezon_deb-maven-plugin)
 
 maven plugin for .deb packaging. Control file generated from pom.xml. Required fields:
 
