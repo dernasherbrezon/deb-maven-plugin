@@ -73,6 +73,9 @@ public class DebianPackageMojo extends AbstractMojo {
 	private Map<Object, Object> osDependencies;
 
 	@Parameter
+	private String depends;
+
+	@Parameter
 	private String installDir;
 
 	@Parameter
@@ -168,7 +171,11 @@ public class DebianPackageMojo extends AbstractMojo {
 		config.setName(project.getName());
 		config.setHomepage(project.getUrl());
 		config.setDescription(project.getDescription());
-		config.setDepends(formatDependencies(osDependencies));
+		if (!osDependencies.isEmpty()) {
+			config.setDepends(formatDependencies(osDependencies));
+		} else {
+			config.setDepends(depends);
+		}
 		config.setInstallDir(composeInstallDir());
 		if (isNullOrBlank(section)) {
 			config.setSection("java");
@@ -253,6 +260,9 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 		if (fileSets == null || fileSets.isEmpty()) {
 			throw new MojoExecutionException("fileSets cannot be empty");
+		}
+		if (!osDependencies.isEmpty() && depends.trim().length() > 0) {
+			throw new MojoExecutionException("either 'osDependencies' or 'depends' parameter should be specified");
 		}
 		File debDir = new File(debBaseDir);
 		if (!debDir.exists()) {
