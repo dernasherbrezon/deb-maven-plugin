@@ -261,7 +261,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		if (fileSets == null || fileSets.isEmpty()) {
 			throw new MojoExecutionException("fileSets cannot be empty");
 		}
-		if (!osDependencies.isEmpty() && depends != null && depends.trim().length() > 0) {
+		if (osDependencies != null && !osDependencies.isEmpty() && depends != null && depends.trim().length() > 0) {
 			throw new MojoExecutionException("either 'osDependencies' or 'depends' parameter should be specified");
 		}
 		File debDir = new File(debBaseDir);
