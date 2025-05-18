@@ -105,6 +105,9 @@ public class DebianPackageMojo extends AbstractMojo {
 	@Parameter(defaultValue = "true")
 	private Boolean generateVersion;
 
+	@Parameter(defaultValue = "true")
+	private Boolean defaultScripts;
+
 	@Parameter(defaultValue = "${project.basedir}/src/main/deb")
 	private String debBaseDir;
 
@@ -239,6 +242,7 @@ public class DebianPackageMojo extends AbstractMojo {
 			osDependencies.put("service-wrapper", null);
 		}
 		ignore.add(".svn");
+		ignore.add(".git");
 		ignore.add(PREINST);
 		ignore.add(POSTINST);
 		ignore.add(PRERM);
@@ -442,14 +446,18 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private static String combine(String classpathResource, String file, boolean inverse) throws IOException {
+	private String combine(String classpathResource, String file, boolean inverse) throws IOException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("#!/bin/bash -e\n");
 		if (inverse) {
 			appendUserScript(file, builder);
-			appendSystemScript(classpathResource, builder);
+			if (defaultScripts == null || Boolean.TRUE.equals(defaultScripts)) {
+				appendDefaultScript(classpathResource, builder);
+			}
 		} else {
-			appendSystemScript(classpathResource, builder);
+			if (defaultScripts == null || Boolean.TRUE.equals(defaultScripts)) {
+				appendDefaultScript(classpathResource, builder);
+			}
 			appendUserScript(file, builder);
 		}
 		return builder.toString();
@@ -468,7 +476,7 @@ public class DebianPackageMojo extends AbstractMojo {
 		}
 	}
 
-	private static void appendSystemScript(String classpathResource, StringBuilder builder) throws IOException {
+	private static void appendDefaultScript(String classpathResource, StringBuilder builder) throws IOException {
 		try (BufferedReader isr = new BufferedReader(new InputStreamReader(DebianPackageMojo.class.getClassLoader().getResourceAsStream(classpathResource), StandardCharsets.UTF_8))) {
 			String curLine;
 			while ((curLine = isr.readLine()) != null) {

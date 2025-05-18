@@ -1,0 +1,8 @@
+Package: no-default-scripts
+Version: template
+Section: java
+Priority: standard
+Architecture: all
+Maintainer: Andrey Rodionov <info@r2cloud.ru>
+Description: Debian project for testing plugin
+ This projects contains all possible config options enabled

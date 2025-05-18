@@ -180,6 +180,18 @@ public class DebianPackageMojoTest {
 	}
 
 	@Test
+	public void testNoDefaultScripts() throws Exception {
+		File basedir = new File("src/test/resources/noDefaultScripts");
+		MavenProject mavenProject = mrule.readMavenProject(basedir);
+		mavenProject.getBuild().setDirectory(folder.getRoot().getAbsolutePath());
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
+		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
+		assertDeb(new File("src/test/resources/expected/noDefaultScripts"), artifact.getFile(), artifact.getClassifier());
+	}
+
+	@Test
 	public void testSuccess() throws Exception {
 		MavenProject mavenProject = loadSuccessProject();
 		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
@@ -313,10 +325,10 @@ public class DebianPackageMojoTest {
 			assertNull(actualBuf.readLine());
 		}
 	}
-	
+
 	private static List<Fileset> copy(List<Fileset> src) {
 		List<Fileset> result = new ArrayList<>();
-		for( Fileset cur : src ) {
+		for (Fileset cur : src) {
 			Fileset rs = new Fileset(cur.getSource(), cur.getTarget());
 			result.add(rs);
 		}
