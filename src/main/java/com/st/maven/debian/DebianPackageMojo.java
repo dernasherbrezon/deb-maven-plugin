@@ -114,6 +114,9 @@ public class DebianPackageMojo extends AbstractMojo {
 	@Parameter
 	private String customCopyRightFile;
 
+	@Parameter
+	private String version;
+
 	private static final Pattern PACKAGE_NAME = Pattern.compile("^[a-z0-9][a-z0-9\\.\\+\\-]+$");
 	private final Configuration freemarkerConfig = new Configuration(Configuration.VERSION_2_3_0);
 	private final Set<String> ignore = new HashSet<>();
@@ -215,15 +218,17 @@ public class DebianPackageMojo extends AbstractMojo {
 	}
 
 	private String setupVersion() {
-		String version;
+		String result;
 		if (generateVersion != null && generateVersion) {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 			sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-			version = sdf.format(new Date());
+			result = sdf.format(new Date());
+		} else if (version != null) {
+			result = version;
 		} else {
-			version = project.getVersion().trim();
+			result = project.getVersion().trim();
 		}
-		return version;
+		return result;
 	}
 
 	private String composeInstallDir() {

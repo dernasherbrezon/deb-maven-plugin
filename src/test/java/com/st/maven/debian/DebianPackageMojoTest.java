@@ -166,6 +166,19 @@ public class DebianPackageMojoTest {
 		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
 		assertDeb(new File("src/test/resources/expected/success"), artifact.getFile(), version);
 	}
+	
+	@Test
+	public void testExplicitVersion() throws Exception {
+		MavenProject mavenProject = loadSuccessProject();
+		String version = UUID.randomUUID().toString();
+		Mojo mm = mrule.lookupConfiguredMojo(mavenProject, "package");
+		mrule.setVariableValueToObject(mm, "generateVersion", false);
+		mrule.setVariableValueToObject(mm, "version", version);
+		mm.execute();
+		assertEquals(1, mavenProject.getAttachedArtifacts().size());
+		Artifact artifact = mavenProject.getAttachedArtifacts().get(0);
+		assertDeb(new File("src/test/resources/expected/success"), artifact.getFile(), version);
+	}
 
 	@Test
 	public void testMinimum() throws Exception {
